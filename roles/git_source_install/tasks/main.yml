@@ -1,0 +1,13 @@
+- name: Instalar xtop
+  shell: curl -fsSL https://raw.githubusercontent.com/xscriptor/xtop/main/install.sh | bash
+  args:
+    creates: /usr/local/bin/xtop
+  tags: install_xtop
+- name: Verificar versión xtop
+  command: xtop --version
+  register: xtop_version
+  tags: check_version
+- name: Mostrar versión
+  debug:
+    msg: "{{ xtop_version.stdout }}"
+  tags: show_version

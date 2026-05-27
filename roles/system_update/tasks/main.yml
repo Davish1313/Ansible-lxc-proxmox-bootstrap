@@ -1,0 +1,18 @@
+- name: Update cache
+  apt:
+    update_cache: true
+    cache_valid_time: 3600
+  register: update_result
+  tags: update
+- name: Upgrade packages
+  apt:
+    upgrade: safe
+    autoremove: true
+    autoclean: true
+  register: upgrade_result
+  tags: upgrade
+- name: Mostrar paquetes actualizados
+  debug:
+    msg: "{{ upgrade_result.stdout | default('Sin cambios') }}"
+  when: upgrade_result is changed
+  

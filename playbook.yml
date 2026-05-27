@@ -1,0 +1,12 @@
+- hosts: lxcs
+  become: true
+  roles:
+    - role: system_update
+      tags: [update, upgrade]
+    - role: packages
+      tags: [packages]
+    - role: copy_files
+      tags: [copy_files]
+    - role: git_source_install
+      tags: [install_xtop, check_version, show_version  ]
+      

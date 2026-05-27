@@ -1,0 +1,16 @@
+- name: Create directory for scripts
+  file:
+    path: /opt/scripts
+    state: directory
+    mode: '0755'
+  tags: copy_files
+
+- name: Copy files
+  copy:
+    src: "files/{{ item.src }}"
+    dest: "/opt/scripts/{{ item.src }}"
+    mode: "{{ item.mode }}"
+  loop:
+    - { src: "test.sh", mode: "0755" }
+    - { src: "test.txt", mode: "0644" }
+  tags: copy_files
