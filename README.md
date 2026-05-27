@@ -13,8 +13,8 @@ Ansible playbook para aprovisionar y mantener contenedores LXC en Proxmox VE. Ac
 1. Clonar el repositorio:
 
 ```bash
-git clone https://github.com/TU_USER/lxc-proxmox-test.git
-cd lxc-proxmox-test
+git clone https://github.com/TU_USER/lxc-proxmox-boostrap.git
+cd lxc-proxmox-bootstrap
 ```
 
 2. Copiar y editar el inventario:
