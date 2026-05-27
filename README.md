@@ -1,6 +1,6 @@
 # LXC Proxmox Bootstrap
 
-Ansible playbook para aprovisionar y mantener contenedores LXC en Proxmox VE. Actualiza el sistema, instala paquetes, despliega scripts de monitoreo y instala herramientas desde fuente.
+Ansible playbook para aprovisionar y mantener contenedores LXC en Proxmox VE. Actualiza el sistema, instala paquetes, despliega archivos y instala herramientas desde fuente.
 
 ## Requisitos
 
@@ -8,36 +8,88 @@ Ansible playbook para aprovisionar y mantener contenedores LXC en Proxmox VE. Ac
 - Acceso SSH a los contenedores LXC
 - Python 3 en los hosts remotos
 
+## Inicio rapido
+
+1. Clonar el repositorio:
+
+```bash
+git clone https://github.com/TU_USER/lxc-proxmox-test.git
+cd lxc-proxmox-test
+```
+
+2. Copiar y editar el inventario:
+
+```bash
+cp inventory.ini.example inventory.ini
+```
+
+3. Ejecutar el playbook completo:
+
+```bash
+ansible-playbook playbook.yml
+```
+
 ## Estructura
 
 ```
 .
-├── ansible.cfg
-├── inventory.ini
-├── playbook.yml
-├── files/
-│   ├── revisar.sh          # Script de reporte de estado del sistema
-│   └── notas.txt
+├── ansible.cfg                # Configuracion de Ansible
+├── inventory.ini.example      # Template del inventario
+├── playbook.yml               # Playbook principal
+├── files/                     # Archivos a desplegar en los hosts
+│   ├── test.sh
+│   └── test.txt
 └── roles/
-    ├── system_update/       # apt update + upgrade
-    ├── packages/            # Instalación de paquetes base
-    ├── send_files/          # Despliegue de archivos a /opt/scripts
-    └── git_source_install/  # Instalación de xtop desde source
+    ├── system_update/         # apt update + upgrade
+    │   └── tasks/main.yml
+    ├── packages/              # Instalacion de paquetes base
+    │   └── tasks/main.yml
+    ├── copy_files/            # Despliegue de archivos a /opt/scripts
+    │   └── tasks/main.yml
+    └── git_source_install/    # Instalacion de herramientas desde source
+        └── tasks/main.yml
 ```
 
 ## Inventario
 
-Editar `inventory.ini` con los hosts LXC:
+Editar `inventory.ini` con los hosts LXC. Usar `inventory.ini.example` como referencia:
 
 ```ini
 [lxcs]
-test    ansible_host=192.168.0.200
-adguard ansible_host=192.168.0.202
+
+hostname1 ansible_host=192.168.0.200
+hostname2 ansible_host=192.168.0.202
+
+[lxcs:vars]
+
+ansible_user=root
+ansible_port=22
+ansible_python_interpreter=/usr/bin/python3
+```
+
+Para entornos con multiples propositos, se recomienda organizar por subgrupos:
+
+```ini
+[lxcs:children]
+infra
+utils
+
+[infra]
+dns ansible_host=192.168.0.202
+
+[utils]
+test-server ansible_host=192.168.0.200
 
 [lxcs:vars]
 ansible_user=root
-ansible_port=77
+ansible_port=22
 ansible_python_interpreter=/usr/bin/python3
+```
+
+Esto permite ejecutar el playbook solo en un grupo:
+
+```bash
+ansible-playbook playbook.yml --tags "update" --limit infra
 ```
 
 ## Uso
@@ -60,10 +112,10 @@ ansible-playbook playbook.yml --tags "upgrade"
 # Solo instalar paquetes
 ansible-playbook playbook.yml --tags "packages"
 
-# Solo desplegar scripts
+# Solo desplegar archivos
 ansible-playbook playbook.yml --tags "copy_files"
 
-# Solo instalar xtop
+# Solo instalar herramientas desde source
 ansible-playbook playbook.yml --tags "install_xtop"
 
 # Combinar tags
@@ -73,10 +125,10 @@ ansible-playbook playbook.yml --tags "update,packages"
 Limitar a un host:
 
 ```bash
-ansible-playbook playbook.yml --limit test
+ansible-playbook playbook.yml --limit hostname1
 ```
 
-Verificar conexión:
+Verificar conexion:
 
 ```bash
 ansible lxcs -m ping
@@ -84,32 +136,72 @@ ansible lxcs -m ping
 
 ## Roles
 
-| Role | Tags | Descripción |
+| Role | Tags | Descripcion |
 |------|------|-------------|
-| `system_update` | `update`, `upgrade` | `apt update` + `apt upgrade --safe` con autoremove |
-| `packages` | `packages` | Instala paquetes base (`curl`, etc.) |
-| `send_files` | `copy_files` | Crea `/opt/scripts` y despliega `revisar.sh` (0755) y `notas.txt` (0644) |
-| `git_source_install` | `install_xtop`, `check_version`, `show_version` | Instala [xtop](https://github.com/xscriptor/xtop) desde source y verifica versión |
+| `system_update` | `update`, `upgrade` | `apt update` + `apt upgrade --safe` con autoremove y autoclean |
+| `packages` | `packages` | Instala paquetes base definidos en la lista del rol |
+| `copy_files` | `copy_files` | Crea `/opt/scripts` y despliega archivos con permisos diferenciados (0755 scripts, 0644 configs) |
+| `git_source_install` | `install_xtop`, `check_version`, `show_version` | Instala herramientas desde source y verifica version |
 
-## revisar.sh
+## Personalizacion
 
-Script de reporte de estado del sistema que se despliega en `/opt/scripts/`. Muestra:
+### Agregar paquetes
 
-- SO, IP, uptime, load average
-- RAM disponible, uso de swap, uso de disco
-- Cuentas con shell y sesiones activas
-- Servicios fallidos
-- Puertos a la escucha con proceso y consumo CPU/RAM
-- Contenedores Docker activos (si aplica)
-- Entorno Proxmox: VMs y LXC (si aplica)
-- Top 10 servicios activos
+Editar `roles/packages/tasks/main.yml` y agregar a la lista:
 
-Ejecución remota:
-
-```bash
-ansible lxcs -a "/opt/scripts/revisar.sh"
+```yaml
+- name: Instalar paquetes basicos
+  apt:
+    name:
+      - curl
+      - git
+      - htop
+    state: present
 ```
 
-## Configuración
+### Agregar archivos a desplegar
 
-`ansible.cfg` incluye defaults sensibles: inventario, roles path, sin retry files, sin host key checking y become habilitado.
+1. Colocar los archivos en `files/`
+2. Agregar entradas al loop en `roles/copy_files/tasks/main.yml`:
+
+```yaml
+loop:
+  - { src: "script.sh", mode: "0755" }
+  - { src: "config.txt", mode: "0644" }
+  - { src: "otro.sh", mode: "0755" }
+```
+
+### Agregar herramientas desde source
+
+Agregar tasks en `roles/git_source_install/tasks/main.yml` siguiendo el patron existente:
+
+```yaml
+- name: Instalar herramienta
+  shell: curl -fsSL URL_DEL_INSTALLER | bash
+  args:
+    creates: /usr/local/bin/herramienta
+  tags: install_herramienta
+```
+
+### Variables por host
+
+Si un host requiere configuracion diferente, sobreescribir variables en el inventario:
+
+```ini
+[lxcs]
+hostname1 ansible_host=192.168.0.200
+hostname2 ansible_host=192.168.0.202 ansible_port=2222 ansible_user=ubuntu
+```
+
+## Configuracion
+
+`ansible.cfg` incluye defaults:
+
+| Parametro | Valor | Descripcion |
+|-----------|-------|-------------|
+| `inventory` | `inventory.ini` | Inventario por defecto |
+| `roles_path` | `roles` | Ruta de roles |
+| `retry_files_enabled` | `False` | Sin archivos .retry |
+| `host_key_checking` | `False` | Sin verificacion de host key |
+| `timeout` | `30` | Timeout de conexion SSH |
+| `become` | `True` | Escalacion de privilegios activa |
