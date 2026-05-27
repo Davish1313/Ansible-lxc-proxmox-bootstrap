@@ -1,13 +1,14 @@
-- name: Instalar xtop
-  shell: curl -fsSL https://raw.githubusercontent.com/xscriptor/xtop/main/install.sh | bash
-  args:
-    creates: /usr/local/bin/xtop
+- name: Descargar e instalar xtop
+  ansible.builtin.apt:
+    deb: https://github.com/ftahirops/xtop/releases/download/v0.48.0/xtop_0.48.0-1_amd64.deb
+    state: present
   tags: install_xtop
-- name: Verificar versión xtop
-  command: xtop --version
+- name: Verificar la instalación de xtop
+  ansible.builtin.command: xtop --version
   register: xtop_version
   tags: check_version
-- name: Mostrar versión
-  debug:
-    msg: "{{ xtop_version.stdout }}"
+- name: Mostrar la versión de xtop instalada
+  ansible.builtin.debug:
+    msg: "La versión de xtop instalada es: {{ xtop_version.stdout }}"
   tags: show_version
+  
