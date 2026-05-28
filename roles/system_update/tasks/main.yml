@@ -1,17 +1,17 @@
-- name: Update cache
+- name: Update_cache
   apt:
     update_cache: true
     cache_valid_time: 3600
-  register: update_result
+  register: system_update_result
   tags:
     - update
     - system_update
-- name: Upgrade packages
+- name: Upgrade_packages
   apt:
     upgrade: safe
     autoremove: true
     autoclean: true
-  register: upgrade_result
+  register: system_update_upgrade_result
   notify:
     - Mostrar paquetes actualizados
   tags:
