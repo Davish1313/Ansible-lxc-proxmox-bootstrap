@@ -13,10 +13,10 @@
   tags: install_xtop
 - name: Verificar la instalación de xtop
   ansible.builtin.command: xtop --version
-  register: xtop_version
-  tags: check_version
+  register: xtop_installed_version_check
+  tags: install_xtop
 - name: Mostrar la versión de xtop instalada
   ansible.builtin.debug:
-    msg: "La versión de xtop instalada es: {{ xtop_version.stdout }}"
-  tags: show_version
+    msg: "La versión de xtop instalada es: {{ xtop_installed_version_check.stdout }}"
+  tags: install_xtop
   

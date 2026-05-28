@@ -1,0 +1,10 @@
+---
+profile: production
+
+warn_list:
+  - name[missing]
+  - name[casing]
+
+skip_list:
+  - meta-no-info
+  - role-name

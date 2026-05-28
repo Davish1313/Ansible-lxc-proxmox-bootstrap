@@ -8,5 +8,5 @@
     - role: copy_files
       tags: [copy_files]
     - role: git_source_install
-      tags: [install_xtop, check_version, show_version]
+      tags: [install_xtop]
       

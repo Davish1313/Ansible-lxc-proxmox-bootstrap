@@ -115,7 +115,7 @@ ansible-playbook playbook.yml --tags "packages"
 # Solo desplegar archivos
 ansible-playbook playbook.yml --tags "copy_files"
 
-# Solo instalar herramientas desde source
+# Instalar xtop (incluye verificacion de version)
 ansible-playbook playbook.yml --tags "install_xtop"
 
 # Combinar tags
@@ -141,7 +141,7 @@ ansible lxcs -m ping
 | `system_update` | `update`, `upgrade` | `apt update` + `apt upgrade --safe` con autoremove y autoclean |
 | `packages` | `packages` | Instala paquetes base definidos en la lista del rol |
 | `copy_files` | `copy_files` | Crea `/opt/scripts` y despliega archivos con permisos diferenciados (0755 scripts, 0644 configs) |
-| `git_source_install` | `install_xtop`, `check_version`, `show_version` | Instala herramientas desde source y verifica version |
+| `git_source_install` | `install_xtop` | Instala xtop desde `.deb` y verifica version |
 
 ## Personalizacion
 
@@ -202,6 +202,5 @@ hostname2 ansible_host=192.168.0.202 ansible_port=2222 ansible_user=ubuntu
 | `inventory` | `inventory.ini` | Inventario por defecto |
 | `roles_path` | `roles` | Ruta de roles |
 | `retry_files_enabled` | `False` | Sin archivos .retry |
-| `host_key_checking` | `False` | Sin verificacion de host key |
 | `timeout` | `30` | Timeout de conexion SSH |
 | `become` | `True` | Escalacion de privilegios activa |
