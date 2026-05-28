@@ -1,9 +1,8 @@
 - name: Instalar paquetes básicos
   apt:
     name:
-      - curl
-      - btop
-      - git
+    - curl
+    - btop
+    - git
     state: present
-    update_cache: true
   tags: packages

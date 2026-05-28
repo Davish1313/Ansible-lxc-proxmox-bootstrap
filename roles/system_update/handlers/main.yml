@@ -1,0 +1,3 @@
+- name: Mostrar paquetes actualizados
+  ansible.builtin.debug:
+    msg: "Paquetes actualizados: {{ system_update_upgrade_result.msg }}"
