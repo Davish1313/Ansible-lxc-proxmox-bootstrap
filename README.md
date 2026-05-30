@@ -36,6 +36,8 @@ ansible-playbook playbook.yml
 ├── ansible.cfg                  # Configuracion de Ansible (incluye become)
 ├── inventory.ini.example        # Template del inventario
 ├── playbook.yml                 # Playbook principal con pre-flight checks
+├── inventory.yml                # Playbook de inventario (reportes por host)
+├── inventory-host/              # Directorio de salida de reportes (generado)
 ├── files/                       # Archivos a desplegar en los hosts
 │   ├── test.sh
 │   └── test.txt
@@ -51,10 +53,16 @@ ansible-playbook playbook.yml
     ├── copy_files/              # Despliegue de archivos a /opt/scripts
     │   ├── meta/main.yml
     │   └── tasks/main.yml
-    └── git_source_install/      # Instalacion de herramientas desde source
+    ├── git_source_install/      # Instalacion de herramientas desde source
+    │   ├── meta/main.yml
+    │   ├── defaults/main.yml
+    │   └── tasks/main.yml
+    └── inventory/               # Reportes de inventario por host
         ├── meta/main.yml
         ├── defaults/main.yml
-        └── tasks/main.yml
+        ├── tasks/main.yml
+        └── templates/
+            └── host_report.yml.j2
 ```
 
 ## Inventario
@@ -99,6 +107,23 @@ Esto permite ejecutar el playbook solo en un grupo:
 ansible-playbook playbook.yml --tags "update" --limit infra
 ```
 
+### Generar Reporte de Inventario
+
+El playbook `inventory.yml` genera reportes detallados por host en `inventory-host/`:
+
+```bash
+# Todos los hosts
+ansible-playbook -i inventory.ini inventory.yml --tags inventory
+
+# Host especifico
+ansible-playbook -i inventory.ini inventory.yml --tags inventory --limit hostname1
+
+# Multiples hosts
+ansible-playbook -i inventory.ini inventory.yml --tags inventory --limit "host1,host2"
+```
+
+El reporte incluye: sistema operativo, CPU, RAM, disco, red, servicios, puertos, usuarios y paquetes instalados.
+
 ## Uso
 
 Ejecutar playbook completo:
@@ -124,6 +149,9 @@ ansible-playbook playbook.yml --tags "copy_files"
 
 # Instalar xtop (incluye verificacion de version)
 ansible-playbook playbook.yml --tags "install_xtop"
+
+# Generar inventario
+ansible-playbook -i inventory.ini inventory.yml --tags "inventory"
 
 # Combinar tags
 ansible-playbook playbook.yml --tags "update,packages"
@@ -151,6 +179,7 @@ El playbook ejecuta un pre-flight check automatico de SSH connectivity antes de 
 | `packages` | `packages` | Instala paquetes base (configurable via `packages_essential_packages`) |
 | `copy_files` | `copy_files` | Crea `/opt/scripts` y despliega archivos con permisos diferenciados (0755 scripts, 0644 configs) |
 | `git_source_install` | `install_xtop` | Instala xtop desde `.deb` con verificacion SHA256 y version check |
+| `inventory` | `inventory` | Genera reportes de inventario por host en `inventory-host/` |
 
 ## Personalizacion
 
@@ -251,3 +280,12 @@ Para verificar syntax sin ejecutar:
 ```bash
 ansible-playbook playbook.yml --syntax-check
 ```
+
+## Archivos Ignorados
+
+`.gitignore` excluye:
+- `inventory.ini` — datos sensibles de hosts
+- `inventory-host/` — reportes generados
+- `*.retry` — reintentos de Ansible
+- `*.log` — logs
+- `notas.txt` — notas personales
