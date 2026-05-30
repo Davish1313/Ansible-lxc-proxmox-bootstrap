@@ -1,0 +1,22 @@
+galaxy_info:
+  role_name: inventory
+  description: Generate comprehensive host inventory reports in YAML format
+  author: jairdavish
+  license: MIT
+  min_ansible_version: "2.9"
+  platforms:
+    - name: Debian
+      versions:
+        - bookworm
+        - bullseye
+    - name: Ubuntu
+      versions:
+        - jammy
+        - focal
+  galaxy_tags:
+    - inventory
+    - system
+    - reporting
+
+dependencies: []
+allow_duplicates: false

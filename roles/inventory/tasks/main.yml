@@ -1,0 +1,88 @@
+---
+- name: Create inventory output directory
+  ansible.builtin.file:
+    path: "{{ inventory_output_dir }}"
+    state: directory
+    mode: "0755"
+  tags:
+    - always
+
+- name: Gather system facts
+  ansible.builtin.setup:
+  tags:
+    - always
+
+- name: Gather package facts
+  ansible.builtin.package_facts:
+  tags:
+    - always
+
+- name: Get running services
+  ansible.builtin.shell: systemctl list-units --type=service --state=running --no-pager --no-legend
+  register: inventory_running_services
+  changed_when: false
+  tags:
+    - always
+
+- name: Get open ports
+  ansible.builtin.shell: >
+    set -o pipefail;
+    ss -tlnp 2>/dev/null | tail -n +2 | awk '{print $4, $6}'
+    || netstat -tlnp 2>/dev/null | tail -n +3 | awk '{print $4, $7}'
+  args:
+    executable: /bin/bash
+  register: inventory_open_ports_raw
+  changed_when: false
+  tags:
+    - always
+
+- name: Get users
+  ansible.builtin.shell: "awk -F: '$3 >= 1000 || $3 == 0 {print $1, $3, $4, $6, $7}' /etc/passwd"
+  register: inventory_users_raw
+  changed_when: false
+  tags:
+    - always
+
+- name: Get disk usage
+  ansible.builtin.command: df -h --output=source,size,used,avail,pcent,target
+  register: inventory_disk_usage
+  changed_when: false
+  tags:
+    - always
+
+- name: Get network interfaces
+  ansible.builtin.command: ip -o addr show
+  register: inventory_network_interfaces
+  changed_when: false
+  tags:
+    - always
+
+- name: Get DNS servers
+  ansible.builtin.command: grep nameserver /etc/resolv.conf
+  register: inventory_dns_servers
+  changed_when: false
+  tags:
+    - always
+
+- name: Get default gateway
+  ansible.builtin.command: ip route show default
+  register: inventory_default_gateway
+  changed_when: false
+  tags:
+    - always
+
+- name: Generate host inventory report
+  ansible.builtin.template:
+    src: host_report.yml.j2
+    dest: "{{ inventory_output_dir }}/{{ inventory_hostname }}.yml"
+    mode: "0644"
+  tags:
+    - always
+
+- name: Fetch inventory report to local
+  ansible.builtin.fetch:
+    src: "{{ inventory_output_dir }}/{{ inventory_hostname }}.yml"
+    dest: "{{ inventory_output_dir }}/{{ inventory_hostname }}.yml"
+    flat: true
+  tags:
+    - always

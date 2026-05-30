@@ -1,0 +1,7 @@
+---
+- name: Generate host inventory reports
+  hosts: lxcs
+  gather_facts: true
+  roles:
+    - role: inventory
+      tags: [inventory]

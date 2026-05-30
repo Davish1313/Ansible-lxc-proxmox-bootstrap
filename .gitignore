@@ -3,3 +3,4 @@
 *.log
 inventory.ini
 notas.txt
+inventory-host/

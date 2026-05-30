@@ -1,0 +1,82 @@
+# {{ ansible_managed }}
+# Host Inventory Report for {{ inventory_hostname }}
+# Generated at: {{ ansible_date_time.iso8601 }}
+
+inventory:
+  hostname: "{{ inventory_hostname }}"
+  ansible_host: "{{ ansible_host }}"
+  generated_at: "{{ ansible_date_time.iso8601 }}"
+
+  system:
+    os: "{{ ansible_distribution }} {{ ansible_distribution_version }}"
+    kernel: "{{ ansible_kernel }}"
+    arch: "{{ ansible_architecture }}"
+    cpu_cores: "{{ ansible_processor_vcpus }}"
+    cpu_model: "{{ ansible_processor[0] }}"
+    ram_total_mb: "{{ ansible_memtotal_mb }}"
+    swap_total_mb: "{{ ansible_swaptotal_mb }}"
+    uptime_seconds: "{{ ansible_uptime_seconds }}"
+
+  disk:
+{% for line in inventory_disk_usage.stdout_lines[1:] %}
+{% set parts = line.split() %}
+{% if parts | length >= 6 %}
+    - filesystem: "{{ parts[0] }}"
+      size: "{{ parts[1] }}"
+      used: "{{ parts[2] }}"
+      available: "{{ parts[3] }}"
+      use_percent: "{{ parts[4] }}"
+      mount: "{{ parts[5] }}"
+{% endif %}
+{% endfor %}
+
+  network:
+    interfaces:
+{% for line in inventory_network_interfaces.stdout_lines %}
+{% set parts = line.split() %}
+{% if parts | length >= 4 %}
+      - name: "{{ parts[1] }}"
+        ip: "{{ parts[3] | regex_replace('/.*', '') }}"
+        cidr: "{{ parts[3] }}"
+        state: "{{ 'up' if 'UP' in line else 'down' }}"
+{% endif %}
+{% endfor %}
+    dns:
+{% for line in inventory_dns_servers.stdout_lines %}
+      - "{{ line.split()[1] }}"
+{% endfor %}
+    default_gateway: "{{ inventory_default_gateway.stdout_lines[0] | default('N/A') }}"
+
+  services_running:
+{% for service in inventory_running_services.stdout_lines %}
+{% set parts = service.split() %}
+    - "{{ parts[0] }}"
+{% endfor %}
+
+  open_ports:
+{% for line in inventory_open_ports_raw.stdout_lines %}
+{% set parts = line.split() %}
+{% if parts | length >= 2 %}
+    - address: "{{ parts[0] }}"
+      process: "{{ parts[1] }}"
+{% endif %}
+{% endfor %}
+
+  users:
+{% for line in inventory_users_raw.stdout_lines %}
+{% set parts = line.split() %}
+{% if parts | length >= 5 %}
+    - name: "{{ parts[0] }}"
+      uid: "{{ parts[1] }}"
+      gid: "{{ parts[2] }}"
+      home: "{{ parts[3] }}"
+      shell: "{{ parts[4] }}"
+{% endif %}
+{% endfor %}
+
+  packages:
+    count: "{{ ansible_facts.packages | length }}"
+    list:
+{% for pkg in ansible_facts.packages.keys() | sort %}
+      - "{{ pkg }}"
+{% endfor %}
