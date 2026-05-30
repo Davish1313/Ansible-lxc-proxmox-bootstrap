@@ -4,7 +4,7 @@ Ansible playbook para aprovisionar y mantener contenedores LXC en Proxmox VE. Ac
 
 ## Requisitos
 
-- Ansible >= 2.9
+- Ansible >= 2.14
 - Acceso SSH a los contenedores LXC
 - Python 3 en los hosts remotos
 
@@ -33,20 +33,27 @@ ansible-playbook playbook.yml
 
 ```
 .
-├── ansible.cfg                # Configuracion de Ansible
-├── inventory.ini.example      # Template del inventario
-├── playbook.yml               # Playbook principal
-├── files/                     # Archivos a desplegar en los hosts
+├── ansible.cfg                  # Configuracion de Ansible (incluye become)
+├── inventory.ini.example        # Template del inventario
+├── playbook.yml                 # Playbook principal con pre-flight checks
+├── files/                       # Archivos a desplegar en los hosts
 │   ├── test.sh
 │   └── test.txt
 └── roles/
-    ├── system_update/         # apt update + upgrade
+    ├── system_update/           # apt update + upgrade
+    │   ├── meta/main.yml
+    │   ├── tasks/main.yml
+    │   └── handlers/main.yml
+    ├── packages/                # Instalacion de paquetes base
+    │   ├── meta/main.yml
+    │   ├── defaults/main.yml
     │   └── tasks/main.yml
-    ├── packages/              # Instalacion de paquetes base
+    ├── copy_files/              # Despliegue de archivos a /opt/scripts
+    │   ├── meta/main.yml
     │   └── tasks/main.yml
-    ├── copy_files/            # Despliegue de archivos a /opt/scripts
-    │   └── tasks/main.yml
-    └── git_source_install/    # Instalacion de herramientas desde source
+    └── git_source_install/      # Instalacion de herramientas desde source
+        ├── meta/main.yml
+        ├── defaults/main.yml
         └── tasks/main.yml
 ```
 
@@ -134,29 +141,36 @@ Verificar conexion:
 ansible lxcs -m ping
 ```
 
+El playbook ejecuta un pre-flight check automatico de SSH connectivity antes de aplicar cambios. Si algun host no es reachable, falla temprano con un error claro.
+
 ## Roles
 
 | Role | Tags | Descripcion |
 |------|------|-------------|
 | `system_update` | `update`, `upgrade` | `apt update` + `apt upgrade --safe` con autoremove y autoclean |
-| `packages` | `packages` | Instala paquetes base definidos en la lista del rol |
+| `packages` | `packages` | Instala paquetes base (configurable via `packages_essential_packages`) |
 | `copy_files` | `copy_files` | Crea `/opt/scripts` y despliega archivos con permisos diferenciados (0755 scripts, 0644 configs) |
-| `git_source_install` | `install_xtop` | Instala xtop desde `.deb` y verifica version |
+| `git_source_install` | `install_xtop` | Instala xtop desde `.deb` con verificacion SHA256 y version check |
 
 ## Personalizacion
 
 ### Agregar paquetes
 
-Editar `roles/packages/tasks/main.yml` y agregar a la lista:
+Editar `roles/packages/defaults/main.yml` y agregar a la lista:
 
 ```yaml
-- name: Instalar paquetes basicos
-  apt:
-    name:
-      - curl
-      - git
-      - htop
-    state: present
+packages_essential_packages:
+  - curl
+  - git
+  - htop
+  - jq
+```
+
+O sobreescribir via inventario:
+
+```ini
+[lxcs:vars]
+packages_essential_packages=["curl", "git", "htop", "jq"]
 ```
 
 ### Agregar archivos a desplegar
@@ -173,13 +187,30 @@ loop:
 
 ### Agregar herramientas desde source
 
-Agregar tasks en `roles/git_source_install/tasks/main.yml` siguiendo el patron existente:
+Agregar tasks en `roles/git_source_install/tasks/main.yml` siguiendo el patron existente (download con checksum + install local):
 
 ```yaml
-- name: Instalar herramienta
-  shell: curl -fsSL URL_DEL_INSTALLER | bash
-  args:
-    creates: /usr/local/bin/herramienta
+- name: Check if herramienta is already installed
+  ansible.builtin.command: herramienta --version
+  register: git_source_install_herramienta_installed
+  changed_when: false
+  failed_when: false
+  tags: install_herramienta
+
+- name: Download herramienta deb package
+  ansible.builtin.get_url:
+    url: "URL_DEL_DEB"
+    dest: /tmp/herramienta.deb
+    checksum: "sha256:HASH"
+    mode: "0644"
+  when: git_source_install_herramienta_installed.rc != 0
+  tags: install_herramienta
+
+- name: Install herramienta from local deb
+  ansible.builtin.apt:
+    deb: /tmp/herramienta.deb
+    state: present
+  when: git_source_install_herramienta_installed.rc != 0
   tags: install_herramienta
 ```
 
@@ -195,7 +226,7 @@ hostname2 ansible_host=192.168.0.202 ansible_port=2222 ansible_user=ubuntu
 
 ## Configuracion
 
-`ansible.cfg` incluye defaults:
+`ansible.cfg` incluye defaults y privilege escalation:
 
 | Parametro | Valor | Descripcion |
 |-----------|-------|-------------|
@@ -204,3 +235,19 @@ hostname2 ansible_host=192.168.0.202 ansible_port=2222 ansible_user=ubuntu
 | `retry_files_enabled` | `False` | Sin archivos .retry |
 | `timeout` | `30` | Timeout de conexion SSH |
 | `become` | `True` | Escalacion de privilegios activa |
+| `become_method` | `sudo` | Metodo de escalacion |
+| `become_user` | `root` | Usuario destino |
+
+## Validacion
+
+El proyecto pasa `ansible-lint` con profile `production`:
+
+```bash
+ansible-lint
+```
+
+Para verificar syntax sin ejecutar:
+
+```bash
+ansible-playbook playbook.yml --syntax-check
+```
