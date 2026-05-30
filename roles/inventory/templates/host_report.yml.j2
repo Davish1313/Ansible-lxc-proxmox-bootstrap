@@ -8,14 +8,14 @@ inventory:
   generated_at: "{{ ansible_date_time.iso8601 }}"
 
   system:
-    os: "{{ ansible_distribution }} {{ ansible_distribution_version }}"
-    kernel: "{{ ansible_kernel }}"
-    arch: "{{ ansible_architecture }}"
-    cpu_cores: "{{ ansible_processor_vcpus }}"
-    cpu_model: "{{ ansible_processor[0] }}"
-    ram_total_mb: "{{ ansible_memtotal_mb }}"
-    swap_total_mb: "{{ ansible_swaptotal_mb }}"
-    uptime_seconds: "{{ ansible_uptime_seconds }}"
+    os: "{{ ansible_facts['distribution'] }} {{ ansible_facts['distribution_version'] }}"
+    kernel: "{{ ansible_facts['kernel'] }}"
+    arch: "{{ ansible_facts['architecture'] }}"
+    cpu_cores: "{{ ansible_facts['processor_vcpus'] }}"
+    cpu_model: "{{ ansible_facts['processor'][0] }}"
+    ram_total_mb: "{{ ansible_facts['memtotal_mb'] }}"
+    swap_total_mb: "{{ ansible_facts['swaptotal_mb'] }}"
+    uptime_seconds: "{{ ansible_facts['uptime_seconds'] }}"
 
   disk:
 {% for line in inventory_disk_usage.stdout_lines[1:] %}
@@ -75,8 +75,8 @@ inventory:
 {% endfor %}
 
   packages:
-    count: "{{ ansible_facts.packages | length }}"
+    count: "{{ ansible_facts['packages'] | length }}"
     list:
-{% for pkg in ansible_facts.packages.keys() | sort %}
+{% for pkg in ansible_facts['packages'].keys() | sort %}
       - "{{ pkg }}"
 {% endfor %}
