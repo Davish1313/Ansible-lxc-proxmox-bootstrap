@@ -1,22 +1,40 @@
-- name: Verificar si xtop ya está instalado
+---
+- name: Check if xtop is already installed
   ansible.builtin.command: xtop --version
-  register: xtop_installed_version
+  register: git_source_install_xtop_installed_version
   changed_when: false
   failed_when: false
   tags: install_xtop
 
-- name: Descargar e instalar xtop
+- name: Download xtop deb package
+  ansible.builtin.get_url:
+    url: "{{ git_source_install_xtop_deb_url }}"
+    dest: /tmp/xtop_{{ git_source_install_xtop_version }}.deb
+    checksum: "{{ git_source_install_xtop_deb_checksum }}"
+    mode: "0644"
+  when: git_source_install_xtop_installed_version.rc != 0 or git_source_install_xtop_installed_version.stdout != git_source_install_xtop_version
+  tags: install_xtop
+
+- name: Install xtop from local deb
   ansible.builtin.apt:
-    deb: "https://github.com/ftahirops/xtop/releases/download/v{{ xtop_version }}/xtop_{{ xtop_version }}-{{ xtop_deb_release }}_amd64.deb"
+    deb: "/tmp/xtop_{{ git_source_install_xtop_version }}.deb"
     state: present
-  when: xtop_installed_version.rc != 0 or xtop_installed_version.stdout != xtop_version
+  when: git_source_install_xtop_installed_version.rc != 0 or git_source_install_xtop_installed_version.stdout != git_source_install_xtop_version
   tags: install_xtop
-- name: Verificar la instalación de xtop
+
+- name: Remove downloaded deb package
+  ansible.builtin.file:
+    path: "/tmp/xtop_{{ git_source_install_xtop_version }}.deb"
+    state: absent
+  tags: install_xtop
+
+- name: Verify xtop installation
   ansible.builtin.command: xtop --version
-  register: xtop_installed_version_check
+  register: git_source_install_xtop_installed_version_check
+  changed_when: false
   tags: install_xtop
-- name: Mostrar la versión de xtop instalada
+
+- name: Display installed xtop version
   ansible.builtin.debug:
-    msg: "La versión de xtop instalada es: {{ xtop_installed_version_check.stdout }}"
+    msg: "xtop version installed: {{ git_source_install_xtop_installed_version_check.stdout }}"
   tags: install_xtop
-  

@@ -1,8 +1,6 @@
-- name: Instalar paquetes básicos
-  apt:
-    name:
-    - curl
-    - btop
-    - git
+---
+- name: Install essential packages
+  ansible.builtin.apt:
+    name: "{{ packages_essential_packages }}"
     state: present
   tags: packages

@@ -1,2 +1,9 @@
-xtop_version: "0.48.0"
-xtop_deb_release: "1"
+---
+git_source_install_xtop_version: "0.48.0"
+git_source_install_xtop_deb_release: "1"
+git_source_install_xtop_deb_arch: "amd64"
+
+# yamllint disable-line rule:line-length
+git_source_install_xtop_deb_url: "https://github.com/ftahirops/xtop/releases/download/v{{ git_source_install_xtop_version }}/xtop_{{ git_source_install_xtop_version }}-{{ git_source_install_xtop_deb_release }}_{{ git_source_install_xtop_deb_arch }}.deb"
+
+git_source_install_xtop_deb_checksum: "sha256:46aeed64433aae709814b99e1f372447c19e1d83ca6f7c70af6aa60fca4cec98"

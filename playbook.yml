@@ -1,5 +1,16 @@
-- hosts: lxcs
-  become: true
+---
+- name: Provision and maintain LXC containers
+  hosts: lxcs
+  pre_tasks:
+    - name: Verify SSH connectivity to all hosts
+      ansible.builtin.ping:
+      tags: always
+
+    - name: Display target host info
+      ansible.builtin.debug:
+        msg: "Target: {{ inventory_hostname }} ({{ ansible_host }}:{{ ansible_port }})"
+      tags: always
+
   roles:
     - role: system_update
       tags: [update, upgrade]
@@ -9,4 +20,3 @@
       tags: [copy_files]
     - role: git_source_install
       tags: [install_xtop]
-      

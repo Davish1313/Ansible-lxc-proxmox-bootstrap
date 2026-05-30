@@ -1,0 +1,23 @@
+galaxy_info:
+  role_name: system_update
+  description: Update apt cache and upgrade packages safely
+  author: jairdavish
+  license: MIT
+  min_ansible_version: "2.9"
+  platforms:
+    - name: Debian
+      versions:
+        - bookworm
+        - bullseye
+    - name: Ubuntu
+      versions:
+        - jammy
+        - focal
+  galaxy_tags:
+    - system
+    - update
+    - upgrade
+    - apt
+
+dependencies: []
+allow_duplicates: false

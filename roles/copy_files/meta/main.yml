@@ -1,0 +1,22 @@
+galaxy_info:
+  role_name: copy_files
+  description: Deploy scripts and configuration files to targets
+  author: jairdavish
+  license: MIT
+  min_ansible_version: "2.9"
+  platforms:
+    - name: Debian
+      versions:
+        - bookworm
+        - bullseye
+    - name: Ubuntu
+      versions:
+        - jammy
+        - focal
+  galaxy_tags:
+    - files
+    - deploy
+    - scripts
+
+dependencies: []
+allow_duplicates: false

@@ -1,12 +1,14 @@
-- name: Update_cache
-  apt:
+---
+- name: Update apt cache
+  ansible.builtin.apt:
     update_cache: true
     cache_valid_time: 3600
   register: system_update_result
   tags:
     - update
-- name: Upgrade_packages
-  apt:
+
+- name: Upgrade packages safely
+  ansible.builtin.apt:
     upgrade: safe
     autoremove: true
     autoclean: true
@@ -15,4 +17,3 @@
     - Show updated packages
   tags:
     - upgrade
-

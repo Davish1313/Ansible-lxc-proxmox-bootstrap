@@ -1,12 +1,13 @@
-- name: Create directory for scripts
-  file:
+---
+- name: Create scripts directory
+  ansible.builtin.file:
     path: /opt/scripts
     state: directory
-    mode: '0755'
+    mode: "0755"
   tags: copy_files
 
-- name: Copy files
-  copy:
+- name: Deploy files to target hosts
+  ansible.builtin.copy:
     src: "files/{{ item.src }}"
     dest: "/opt/scripts/{{ item.src }}"
     mode: "{{ item.mode }}"
