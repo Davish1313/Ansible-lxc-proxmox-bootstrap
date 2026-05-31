@@ -1,5 +1,6 @@
 {
     "files.associations": {
-        "inventory.yml": "ansible"
+         "inventory.yml": "ansible"
+
     }
 }
