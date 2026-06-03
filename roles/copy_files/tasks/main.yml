@@ -1,5 +1,5 @@
 ---
-- name: Create scripts directory
+- name: Create /opt/scripts directory for custom scripts deployment
   ansible.builtin.file:
     path: /opt/scripts
     state: directory

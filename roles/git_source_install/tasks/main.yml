@@ -1,9 +1,9 @@
 ---
-- name: Check if xtop is already installed
-  ansible.builtin.command: xtop --version
-  register: git_source_install_xtop_installed_version
+- name: Check if xtop is already installed by verifying binary exists
+  ansible.builtin.stat:
+    path: /usr/bin/xtop
+  register: xtop_binary
   changed_when: false
-  failed_when: false
   tags: install_xtop
 
 - name: Download xtop deb package
@@ -28,10 +28,11 @@
     state: absent
   tags: install_xtop
 
-- name: Verify xtop installation
+- name: Verify xtop installation by checking version output
   ansible.builtin.command: xtop --version
   register: git_source_install_xtop_installed_version_check
   changed_when: false
+  failed_when: false
   tags: install_xtop
 
 - name: Display installed xtop version

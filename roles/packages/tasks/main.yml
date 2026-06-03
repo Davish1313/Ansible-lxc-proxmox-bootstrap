@@ -1,5 +1,5 @@
 ---
-- name: Install essential packages
+- name: Install essential system packages via APT (curl, btop, git)
   ansible.builtin.apt:
     name: "{{ packages_essential_packages }}"
     state: present

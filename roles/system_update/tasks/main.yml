@@ -1,5 +1,5 @@
 ---
-- name: Update apt cache
+- name: Update APT package cache with 1-hour validity
   ansible.builtin.apt:
     update_cache: true
     cache_valid_time: 3600
