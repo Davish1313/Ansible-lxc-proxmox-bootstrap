@@ -1,0 +1,5 @@
+---
+copy_files_dest: "/opt/scripts"
+copy_files_list:
+  - { src: "test.sh", mode: "0755" }
+  - { src: "test.txt", mode: "0644" }

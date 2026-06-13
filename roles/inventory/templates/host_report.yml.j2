@@ -64,13 +64,13 @@ inventory:
 
   users:
 {% for line in inventory_users_raw.stdout_lines %}
-{% set parts = line.split() %}
-{% if parts | length >= 5 %}
+{% set parts = line.split(':') %}
+{% if parts | length >= 7 and (parts[2] | int >= 1000 or parts[2] | int == 0) %}
     - name: "{{ parts[0] }}"
-      uid: "{{ parts[1] }}"
-      gid: "{{ parts[2] }}"
-      home: "{{ parts[3] }}"
-      shell: "{{ parts[4] }}"
+      uid: "{{ parts[2] }}"
+      gid: "{{ parts[3] }}"
+      home: "{{ parts[5] }}"
+      shell: "{{ parts[6] }}"
 {% endif %}
 {% endfor %}
 

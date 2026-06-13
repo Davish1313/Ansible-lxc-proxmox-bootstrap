@@ -7,37 +7,37 @@
   tags:
     - always
 
-- name: Gather system facts
-  ansible.builtin.setup:
-  tags:
-    - always
-
 - name: Gather package facts
   ansible.builtin.package_facts:
   tags:
     - always
 
 - name: Get running services
-  ansible.builtin.shell: systemctl list-units --type=service --state=running --no-pager --no-legend
-  register: inventory_running_services
+  ansible.builtin.systemd:
+    name: "*"
+    state: started
+  register: inventory_running_services_raw
   changed_when: false
   tags:
     - always
 
+- name: Extract running service names
+  ansible.builtin.set_fact:
+    inventory_running_services:
+      stdout_lines: "{{ inventory_running_services_raw.services | selectattr('state', 'equalto', 'running') | map(attribute='name') | list }}"
+  tags:
+    - always
+
 - name: Get open ports
-  ansible.builtin.shell: >
-    set -o pipefail;
-    ss -tlnp 2>/dev/null | tail -n +2 | awk '{print $4, $6}'
-    || netstat -tlnp 2>/dev/null | tail -n +3 | awk '{print $4, $7}'
-  args:
-    executable: /bin/bash
+  ansible.builtin.command: >
+    sh -c 'ss -tlnp 2>/dev/null | tail -n +2 | awk "{print $4, $6}" || netstat -tlnp 2>/dev/null | tail -n +3 | awk "{print $4, $7}"'
   register: inventory_open_ports_raw
   changed_when: false
   tags:
     - always
 
 - name: Get users
-  ansible.builtin.shell: "awk -F: '$3 >= 1000 || $3 == 0 {print $1, $3, $4, $6, $7}' /etc/passwd"
+  ansible.builtin.command: getent passwd
   register: inventory_users_raw
   changed_when: false
   tags:

@@ -1,9 +1,17 @@
 ---
-- name: Check if xtop is already installed by verifying binary exists
+- name: Check if xtop binary exists
   ansible.builtin.stat:
     path: /usr/bin/xtop
-  register: xtop_binary
+  register: git_source_install_xtop_binary
   changed_when: false
+  tags: install_xtop
+
+- name: Get installed xtop version
+  ansible.builtin.command: xtop --version
+  register: git_source_install_xtop_installed_version
+  changed_when: false
+  failed_when: false
+  when: git_source_install_xtop_binary.stat.exists
   tags: install_xtop
 
 - name: Download xtop deb package
@@ -12,14 +20,20 @@
     dest: /tmp/xtop_{{ git_source_install_xtop_version }}.deb
     checksum: "{{ git_source_install_xtop_deb_checksum }}"
     mode: "0644"
-  when: git_source_install_xtop_installed_version.rc != 0 or git_source_install_xtop_installed_version.stdout != git_source_install_xtop_version
+  when: >
+    not git_source_install_xtop_binary.stat.exists
+    or git_source_install_xtop_installed_version.rc != 0
+    or git_source_install_xtop_installed_version.stdout != git_source_install_xtop_version
   tags: install_xtop
 
 - name: Install xtop from local deb
   ansible.builtin.apt:
     deb: "/tmp/xtop_{{ git_source_install_xtop_version }}.deb"
     state: present
-  when: git_source_install_xtop_installed_version.rc != 0 or git_source_install_xtop_installed_version.stdout != git_source_install_xtop_version
+  when: >
+    not git_source_install_xtop_binary.stat.exists
+    or git_source_install_xtop_installed_version.rc != 0
+    or git_source_install_xtop_installed_version.stdout != git_source_install_xtop_version
   tags: install_xtop
 
 - name: Remove downloaded deb package
