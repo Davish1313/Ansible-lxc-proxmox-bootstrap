@@ -143,17 +143,17 @@ ansible-playbook playbook.yml --tags "update" --limit infra
 
 ### Generar Reporte de Inventario
 
-El playbook `inventory.yml` genera reportes detallados por host en `inventory-host/`:
+El playbook `inventory.yml` genera reportes detallados por host en `inventory-host/` (todas las tasks usan `tags: always`):
 
 ```bash
 # Todos los hosts
-ansible-playbook -i inventory.ini inventory.yml --tags inventory
+ansible-playbook -i inventory.ini inventory.yml
 
 # Host especifico
-ansible-playbook -i inventory.ini inventory.yml --tags inventory --limit hostname1
+ansible-playbook -i inventory.ini inventory.yml --limit hostname1
 
 # Multiples hosts
-ansible-playbook -i inventory.ini inventory.yml --tags inventory --limit "host1,host2"
+ansible-playbook -i inventory.ini inventory.yml --limit "host1,host2"
 ```
 
 El reporte incluye: sistema operativo, CPU, RAM, disco, red, servicios, puertos, usuarios y paquetes instalados.
@@ -197,7 +197,7 @@ ansible-playbook playbook.yml --tags "copy_files"
 ansible-playbook playbook.yml --tags "install_xtop"
 
 # Generar inventario
-ansible-playbook -i inventory.ini inventory.yml --tags "inventory"
+ansible-playbook -i inventory.ini inventory.yml
 
 # Combinar tags
 ansible-playbook playbook.yml --tags "update,packages"

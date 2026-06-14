@@ -13,26 +13,40 @@
     - always
 
 - name: Get running services
-  ansible.builtin.systemd:
-    name: "*"
-    state: started
-  register: inventory_running_services_raw
+  ansible.builtin.command: systemctl list-units --type=service --state=running --no-pager --no-legend
+  register: inventory_running_services
   changed_when: false
   tags:
     - always
+  vars:
+    ansible_no_log: false
+  # noqa: command-instead-of-module
 
-- name: Extract running service names
+- name: Get open ports via ss
+  ansible.builtin.command: ss -tlnp
+  register: inventory_open_ports_ss
+  changed_when: false
+  failed_when: false
+  tags:
+    - always
+
+- name: Get open ports via netstat (fallback)
+  ansible.builtin.command: netstat -tlnp
+  register: inventory_open_ports_netstat
+  changed_when: false
+  failed_when: false
+  tags:
+    - always
+
+- name: Parse open ports
   ansible.builtin.set_fact:
-    inventory_running_services:
-      stdout_lines: "{{ inventory_running_services_raw.services | selectattr('state', 'equalto', 'running') | map(attribute='name') | list }}"
-  tags:
-    - always
-
-- name: Get open ports
-  ansible.builtin.command: >
-    sh -c 'ss -tlnp 2>/dev/null | tail -n +2 | awk "{print $4, $6}" || netstat -tlnp 2>/dev/null | tail -n +3 | awk "{print $4, $7}"'
-  register: inventory_open_ports_raw
-  changed_when: false
+    inventory_open_ports_raw:
+      stdout_lines: "{{ (inventory_open_ports_ss.stdout_lines | default([]))
+        | difference([''])
+        | select('match', '^LISTEN')
+        | map('split')
+        | map(attribute=3)
+        | list }}"
   tags:
     - always
 
