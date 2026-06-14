@@ -1,0 +1,8 @@
+---
+bootstrap_user_name: "ansible"
+bootstrap_user_uid: ""
+bootstrap_user_shell: "/bin/bash"
+bootstrap_user_groups:
+  - sudo
+bootstrap_user_sudo_nopasswd: true
+bootstrap_user_ssh_public_key: "{{ lookup('file', '~/.ssh/ansible_lxc.pub') }}"

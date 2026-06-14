@@ -1,14 +1,36 @@
 ---
-- name: Provision and maintain LXC containers
+- name: Bootstrap ansible user on LXC containers
   hosts: lxcs
+  gather_facts: true
+  vars:
+    ansible_user: root
   pre_tasks:
-    - name: Verify SSH connectivity to all hosts
+    - name: Verify SSH connectivity as root
       ansible.builtin.ping:
       tags: always
 
     - name: Display target host info
       ansible.builtin.debug:
-        msg: "Target: {{ inventory_hostname }} ({{ ansible_host }}:{{ ansible_port }})"
+        msg: "Target: {{ inventory_hostname }} ({{ ansible_host }}:{{ ansible_port }}) as root"
+      tags: always
+
+  roles:
+    - role: bootstrap_user
+      tags: [bootstrap]
+
+- name: Provision and maintain LXC containers
+  hosts: lxcs
+  vars:
+    ansible_user: "{{ bootstrap_user_name | default('ansible') }}"
+    ansible_ssh_private_key_file: "~/.ssh/ansible_lxc"
+  pre_tasks:
+    - name: Verify SSH connectivity as ansible user
+      ansible.builtin.ping:
+      tags: always
+
+    - name: Display target host info
+      ansible.builtin.debug:
+        msg: "Target: {{ inventory_hostname }} ({{ ansible_host }}:{{ ansible_port }}) as {{ ansible_user }}"
       tags: always
 
   roles:

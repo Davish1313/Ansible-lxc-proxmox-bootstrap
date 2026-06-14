@@ -1,0 +1,51 @@
+---
+- name: Fail if ansible user SSH public key file not found
+  ansible.builtin.fail:
+    msg: "SSH public key not found at ~/.ssh/ansible_lxc.pub. Generate it first: ssh-keygen -t ed25519 -f ~/.ssh/ansible_lxc -C 'ansible@lxc-bootstrap' -N ''"
+  when: bootstrap_user_ssh_public_key is not defined or bootstrap_user_ssh_public_key | length == 0
+  tags: bootstrap
+
+- name: Create ansible user
+  ansible.builtin.user:
+    name: "{{ bootstrap_user_name }}"
+    uid: "{{ bootstrap_user_uid | int if bootstrap_user_uid | length > 0 else omit }}"
+    shell: "{{ bootstrap_user_shell }}"
+    groups: "{{ bootstrap_user_groups | join(',') }}"
+    append: true
+    create_home: true
+  tags: bootstrap
+
+- name: Configure passwordless sudo for ansible user
+  ansible.builtin.copy:
+    content: "{{ bootstrap_user_name }} ALL=(ALL) NOPASSWD:ALL\n"
+    dest: "/etc/sudoers.d/{{ bootstrap_user_name }}"
+    mode: "0440"
+    validate: visudo -cf %s
+  tags: bootstrap
+
+- name: Ensure ansible user .ssh directory exists
+  ansible.builtin.file:
+    path: "~{{ bootstrap_user_name }}/.ssh"
+    state: directory
+    mode: "0700"
+    owner: "{{ bootstrap_user_name }}"
+    group: "{{ bootstrap_user_name }}"
+  tags: bootstrap
+
+- name: Deploy ansible user SSH public key
+  ansible.posix.authorized_key:
+    user: "{{ bootstrap_user_name }}"
+    key: "{{ bootstrap_user_ssh_public_key }}"
+    state: present
+    exclusive: false
+  tags: bootstrap
+
+- name: Ensure correct ownership on .ssh directory
+  ansible.builtin.file:
+    path: "~{{ bootstrap_user_name }}/.ssh"
+    state: directory
+    mode: "0700"
+    owner: "{{ bootstrap_user_name }}"
+    group: "{{ bootstrap_user_name }}"
+    recurse: true
+  tags: bootstrap
