@@ -34,12 +34,8 @@
     not git_source_install_xtop_binary.stat.exists
     or git_source_install_xtop_installed_version.rc != 0
     or git_source_install_xtop_installed_version.stdout != git_source_install_xtop_version
-  tags: install_xtop
-
-- name: Remove downloaded deb package
-  ansible.builtin.file:
-    path: "/tmp/xtop_{{ git_source_install_xtop_version }}.deb"
-    state: absent
+  notify:
+    - Remove downloaded deb package
   tags: install_xtop
 
 - name: Verify xtop installation by checking version output
