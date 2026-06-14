@@ -8,7 +8,7 @@ Ansible playbook para aprovisionar y mantener contenedores LXC en Proxmox VE. Ac
 - Acceso SSH a los contenedores LXC
 - Python 3 en los hosts remotos
 
-## Inicio rapido
+## Inicio rápido
 
 1. Clonar el repositorio:
 
@@ -21,9 +21,22 @@ cd lxc-proxmox-bootstrap
 
 ```bash
 cp inventory.ini.example inventory.ini
+# Edita inventory.ini con tus hosts
 ```
 
-3. Ejecutar el playbook completo:
+3. Generar clave SSH dedicada para ansible (una sola vez):
+
+```bash
+ssh-keygen -t ed25519 -f ~/.ssh/ansible_lxc -C "ansible@lxc-bootstrap" -N ""
+```
+
+4. Bootstrap inicial (crea usuario `ansible` con sudo + clave SSH en todos los hosts):
+
+```bash
+ansible-playbook playbook.yml --tags bootstrap
+```
+
+5. Ejecutar playbook completo (provision + mantenimiento):
 
 ```bash
 ansible-playbook playbook.yml
@@ -33,31 +46,35 @@ ansible-playbook playbook.yml
 
 ```
 .
-├── ansible.cfg                  # Configuracion de Ansible (incluye become)
-├── inventory.ini.example        # Template del inventario
-├── playbook.yml                 # Playbook principal con pre-flight checks
-├── inventory.yml                # Playbook de inventario (reportes por host)
-├── inventory-host/              # Directorio de salida de reportes (generado)
-├── files/                       # Archivos a desplegar en los hosts
+├── ansible.cfg                   # Configuracion de Ansible (incluye become)
+├── inventory.ini.example         # Template del inventario
+├── playbook.yml                  # Playbook principal (dos plays: bootstrap + provision)
+├── inventory.yml                 # Playbook de inventario (reportes por host)
+├── inventory-host/               # Directorio de salida de reportes (generado)
+├── files/                        # Archivos a desplegar en los hosts
 │   ├── test.sh
 │   └── test.txt
 └── roles/
-    ├── system_update/           # apt update + upgrade
+    ├── bootstrap_user/           # Creacion usuario ansible + sudo + SSH keys
+    │   ├── defaults/main.yml
+    │   ├── tasks/main.yml
+    │   └── handlers/main.yml
+    ├── system_update/            # apt update + upgrade
     │   ├── meta/main.yml
     │   ├── tasks/main.yml
     │   └── handlers/main.yml
-    ├── packages/                # Instalacion de paquetes base
+    ├── packages/                 # Instalacion de paquetes base
     │   ├── meta/main.yml
     │   ├── defaults/main.yml
     │   └── tasks/main.yml
-    ├── copy_files/              # Despliegue de archivos a /opt/scripts
+    ├── copy_files/               # Despliegue de archivos a /opt/scripts
     │   ├── meta/main.yml
     │   └── tasks/main.yml
-    ├── git_source_install/      # Instalacion de herramientas desde source
+    ├── git_source_install/       # Instalacion de herramientas desde source
     │   ├── meta/main.yml
     │   ├── defaults/main.yml
     │   └── tasks/main.yml
-    └── inventory/               # Reportes de inventario por host
+    └── inventory/                # Reportes de inventario por host
         ├── meta/main.yml
         ├── defaults/main.yml
         ├── tasks/main.yml
@@ -77,8 +94,25 @@ hostname2 ansible_host=192.168.0.202
 
 [lxcs:vars]
 
-ansible_user=root
+ansible_user=root          # Usuario para bootstrap inicial (play 1)
 ansible_port=22
+ansible_python_interpreter=/usr/bin/python3
+```
+
+**Modelo de doble usuario:**
+
+| Fase | Play | ansible_user | Clave SSH | Propósito |
+|------|------|--------------|-----------|-----------|
+| Bootstrap | 1 | `root` | `~/.ssh/id_ed25519` (default) | Crea usuario `ansible` + sudo + deploy clave |
+| Provision | 2 | `ansible` | `~/.ssh/ansible_lxc` (dedicada) | Ejecuta tareas con sudo |
+
+Tras bootstrappear **todos** los hosts, puedes actualizar el inventario para comandos directos:
+
+```ini
+[lxcs:vars]
+ansible_user=ansible
+ansible_port=77
+ansible_ssh_private_key_file=~/.ssh/ansible_lxc
 ansible_python_interpreter=/usr/bin/python3
 ```
 
@@ -96,7 +130,7 @@ dns ansible_host=192.168.0.202
 test-server ansible_host=192.168.0.200
 
 [lxcs:vars]
-ansible_user=root
+ansible_user=root          # o ansible tras bootstrap completo
 ansible_port=22
 ansible_python_interpreter=/usr/bin/python3
 ```
@@ -126,10 +160,22 @@ El reporte incluye: sistema operativo, CPU, RAM, disco, red, servicios, puertos,
 
 ## Uso
 
-Ejecutar playbook completo:
+Ejecutar playbook completo (bootstrap idempotente + provision):
 
 ```bash
 ansible-playbook playbook.yml
+```
+
+Solo bootstrap (hosts nuevos o primera vez):
+
+```bash
+ansible-playbook playbook.yml --tags bootstrap
+```
+
+Solo provision (salta bootstrap si ya existe):
+
+```bash
+ansible-playbook playbook.yml --skip-tags bootstrap
 ```
 
 Ejecutar por tags:
@@ -175,13 +221,54 @@ El playbook ejecuta un pre-flight check automatico de SSH connectivity antes de 
 
 | Role | Tags | Descripcion |
 |------|------|-------------|
+| `bootstrap_user` | `bootstrap` | Crea usuario `ansible` con sudo NOPASSWD y despliega clave SSH ed25519 |
 | `system_update` | `update`, `upgrade` | `apt update` + `apt upgrade --safe` con autoremove y autoclean |
 | `packages` | `packages` | Instala paquetes base (configurable via `packages_essential_packages`) |
 | `copy_files` | `copy_files` | Crea `/opt/scripts` y despliega archivos con permisos diferenciados (0755 scripts, 0644 configs) |
 | `git_source_install` | `install_xtop` | Instala xtop desde `.deb` con verificacion SHA256 y version check |
 | `inventory` | `inventory` | Genera reportes de inventario por host en `inventory-host/` |
 
-## Personalizacion
+## Seguridad
+
+### Modelo de acceso dual
+
+El playbook implementa **separación de privilegios** usando dos usuarios SSH:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Controlador (tu máquina)                                   │
+│  ~/.ssh/id_ed25519       →  root@host  (solo bootstrap)     │
+│  ~/.ssh/ansible_lxc      →  ansible@host (provision diario) │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│  Host LXC                                                   │
+│  root:  authorized_keys = id_ed25519.pub                    │
+│  ansible: authorized_keys = ansible_lxc.pub                 │
+│  ansible ALL=(ALL) NOPASSWD:ALL  (via sudoers.d)            │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Ventajas:**
+
+| Aspecto | Beneficio |
+|---------|-----------|
+| Claves separadas | Compromiso de `ansible_lxc` ≠ acceso root |
+| ed25519 | Curva elíptica moderna, más rápido y seguro que RSA |
+| Sudo auditado | Cada comando privilegiado queda en logs del sistema |
+| Principio menor privilegio | `ansible` usuario normal, escala solo cuando requiere |
+| Rotación independiente | Cambias clave de ansible sin tocar root |
+
+### Flujo de bootstrap
+
+1. **Play 1** conecta como `root` (clave default) → ejecuta `bootstrap_user`
+2. `bootstrap_user` crea usuario `ansible`, grupo `sudo`, `/etc/sudoers.d/ansible`
+3. Despliega `~/.ssh/ansible_lxc.pub` a `/home/ansible/.ssh/authorized_keys`
+4. **Play 2** conecta como `ansible` (clave dedicada) → `become: true` → sudo a root
+5. Resto de roles ejecutan con privilegios elevados
+
+## Personalización
 
 ### Agregar paquetes
 
@@ -205,10 +292,10 @@ packages_essential_packages=["curl", "git", "htop", "jq"]
 ### Agregar archivos a desplegar
 
 1. Colocar los archivos en `files/`
-2. Agregar entradas al loop en `roles/copy_files/tasks/main.yml`:
+2. Agregar entradas a `roles/copy_files/defaults/main.yml`:
 
 ```yaml
-loop:
+copy_files_list:
   - { src: "script.sh", mode: "0755" }
   - { src: "config.txt", mode: "0644" }
   - { src: "otro.sh", mode: "0755" }
@@ -267,6 +354,8 @@ hostname2 ansible_host=192.168.0.202 ansible_port=2222 ansible_user=ubuntu
 | `become_method` | `sudo` | Metodo de escalacion |
 | `become_user` | `root` | Usuario destino |
 
+> **Nota:** El playbook define `ansible_user` y `ansible_ssh_private_key_file` por play (vars de play), lo que pisa cualquier valor del inventario. El inventory solo afecta comandos ad-hoc (`ansible lxcs -m ping`).
+
 ## Validacion
 
 El proyecto pasa `ansible-lint` con profile `production`:
@@ -284,6 +373,7 @@ ansible-playbook playbook.yml --syntax-check
 ## Archivos Ignorados
 
 `.gitignore` excluye:
+
 - `inventory.ini` — datos sensibles de hosts
 - `inventory-host/` — reportes generados
 - `*.retry` — reintentos de Ansible
