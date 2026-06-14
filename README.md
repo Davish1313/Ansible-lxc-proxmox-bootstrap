@@ -51,9 +51,6 @@ ansible-playbook playbook.yml
 ├── playbook.yml                  # Playbook principal (dos plays: bootstrap + provision)
 ├── inventory.yml                 # Playbook de inventario (reportes por host)
 ├── inventory-host/               # Directorio de salida de reportes (generado)
-├── files/                        # Archivos a desplegar en los hosts
-│   ├── test.sh
-│   └── test.txt
 └── roles/
     ├── bootstrap_user/           # Creacion usuario ansible + sudo + SSH keys
     │   ├── defaults/main.yml
@@ -69,11 +66,14 @@ ansible-playbook playbook.yml
     │   └── tasks/main.yml
     ├── copy_files/               # Despliegue de archivos a /opt/scripts
     │   ├── meta/main.yml
-    │   └── tasks/main.yml
+    │   ├── defaults/main.yml
+    │   ├── tasks/main.yml
+    │   └── files/                # Archivos fuente del rol
     ├── git_source_install/       # Instalacion de herramientas desde source
     │   ├── meta/main.yml
     │   ├── defaults/main.yml
-    │   └── tasks/main.yml
+    │   ├── tasks/main.yml
+    │   └── handlers/main.yml     # Cleanup post-instalacion
     └── inventory/                # Reportes de inventario por host
         ├── meta/main.yml
         ├── defaults/main.yml
@@ -101,10 +101,10 @@ ansible_python_interpreter=/usr/bin/python3
 
 **Modelo de doble usuario:**
 
-| Fase | Play | ansible_user | Clave SSH | Propósito |
-|------|------|--------------|-----------|-----------|
-| Bootstrap | 1 | `root` | `~/.ssh/id_ed25519` (default) | Crea usuario `ansible` + sudo + deploy clave |
-| Provision | 2 | `ansible` | `~/.ssh/ansible_lxc` (dedicada) | Ejecuta tareas con sudo |
+| Fase | Play | ansible_user | Clave SSH | gather_facts | Propósito |
+|------|------|--------------|-----------|--------------|-----------|
+| Bootstrap | 1 | `root` | `~/.ssh/id_ed25519` | `false` | Crea usuario `ansible` + sudo + deploy clave |
+| Provision | 2 | `ansible` | `~/.ssh/ansible_lxc` (dedicada) | `true` (default) | Ejecuta tareas con sudo |
 
 Tras bootstrappear **todos** los hosts, puedes actualizar el inventario para comandos directos:
 
@@ -224,8 +224,8 @@ El playbook ejecuta un pre-flight check automatico de SSH connectivity antes de 
 | `bootstrap_user` | `bootstrap` | Crea usuario `ansible` con sudo NOPASSWD y despliega clave SSH ed25519 |
 | `system_update` | `update`, `upgrade` | `apt update` + `apt upgrade --safe` con autoremove y autoclean |
 | `packages` | `packages` | Instala paquetes base (configurable via `packages_essential_packages`) |
-| `copy_files` | `copy_files` | Crea `/opt/scripts` y despliega archivos con permisos diferenciados (0755 scripts, 0644 configs) |
-| `git_source_install` | `install_xtop` | Instala xtop desde `.deb` con verificacion SHA256 y version check |
+| `copy_files` | `copy_files` | Crea `/opt/scripts` y despliega archivos desde `roles/copy_files/files/` con permisos diferenciados (0755 scripts, 0644 configs) |
+| `git_source_install` | `install_xtop` | Instala xtop desde `.deb` con verificacion SHA256, version check y cleanup via handler |
 | `inventory` | `inventory` | Genera reportes de inventario por host en `inventory-host/` |
 
 ## Seguridad
@@ -262,7 +262,7 @@ El playbook implementa **separación de privilegios** usando dos usuarios SSH:
 
 ### Flujo de bootstrap
 
-1. **Play 1** conecta como `root` (clave default) → ejecuta `bootstrap_user`
+1. **Play 1** conecta como `root` (clave `~/.ssh/id_ed25519` en vars de play, `gather_facts: false`) → ejecuta `bootstrap_user`
 2. `bootstrap_user` crea usuario `ansible`, grupo `sudo`, `/etc/sudoers.d/ansible`
 3. Despliega `~/.ssh/ansible_lxc.pub` a `/home/ansible/.ssh/authorized_keys`
 4. **Play 2** conecta como `ansible` (clave dedicada) → `become: true` → sudo a root
@@ -291,7 +291,7 @@ packages_essential_packages=["curl", "git", "htop", "jq"]
 
 ### Agregar archivos a desplegar
 
-1. Colocar los archivos en `files/`
+1. Colocar los archivos en `roles/copy_files/files/`
 2. Agregar entradas a `roles/copy_files/defaults/main.yml`:
 
 ```yaml
@@ -303,8 +303,9 @@ copy_files_list:
 
 ### Agregar herramientas desde source
 
-Agregar tasks en `roles/git_source_install/tasks/main.yml` siguiendo el patron existente (download con checksum + install local):
+Agregar tasks y handler de cleanup en `roles/git_source_install/` siguiendo el patron existente:
 
+`tasks/main.yml`:
 ```yaml
 - name: Check if herramienta is already installed
   ansible.builtin.command: herramienta --version
@@ -327,7 +328,16 @@ Agregar tasks en `roles/git_source_install/tasks/main.yml` siguiendo el patron e
     deb: /tmp/herramienta.deb
     state: present
   when: git_source_install_herramienta_installed.rc != 0
+  notify: Remove downloaded deb package
   tags: install_herramienta
+```
+
+`handlers/main.yml`:
+```yaml
+- name: Remove downloaded deb package
+  ansible.builtin.file:
+    path: /tmp/herramienta.deb
+    state: absent
 ```
 
 ### Variables por host
