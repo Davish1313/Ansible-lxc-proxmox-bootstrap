@@ -1,4 +1,28 @@
 ---
+# ============================================================
+# bootstrap_user - Crea usuario ansible con sudo NOPASSWD
+# ============================================================
+#
+# Requisito: generar clave SSH dedicada antes del primer uso:
+#   ssh-keygen -t ed25519 -f ~/.ssh/ansible_lxc \
+#     -C "ansible@lxc-bootstrap" -N ""
+#
+# Flujo:
+#   Play 1 (como root ~/.ssh/id_ed25519) -> este rol ->
+#   Play 2 (como ansible via ~/.ssh/ansible_lxc) -> provision
+#
+# Ventajas del modelo dual:
+#   - Claves separadas: compromiso de ansible_lxc != acceso root
+#   - Sudo auditado: cada comando privilegiado queda en logs
+#   - Rotacion independiente sin tocar root
+# ============================================================
+#
+# Ejecucion:
+#   ansible-playbook playbook.yml --tags bootstrap              # solo bootstrap
+#   ansible-playbook playbook.yml                               # bootstrap + provision
+#   ansible-playbook playbook.yml --tags bootstrap --limit web  # host especifico
+#
+
 bootstrap_user_name: "ansible"
 bootstrap_user_uid: ""
 bootstrap_user_shell: "/bin/bash"
