@@ -66,9 +66,9 @@ ansible-playbook playbook.yml
     │   └── tasks/main.yml
     ├── copy_files/               # Despliegue de archivos a /opt/scripts
     │   ├── meta/main.yml
-    │   ├── defaults/main.yml
+    │   ├── defaults/main.yml     # copy_files_list: [] (poblar con archivos a desplegar)
     │   ├── tasks/main.yml
-    │   └── files/                # Archivos fuente del rol
+    │   └── files/                # Archivos fuente: test.sh, test.txt, zsh.sh
     ├── git_source_install/       # Instalacion de herramientas desde source
     │   ├── meta/main.yml
     │   ├── defaults/main.yml
@@ -224,7 +224,7 @@ El playbook ejecuta un pre-flight check automatico de SSH connectivity antes de 
 | `bootstrap_user` | `bootstrap` | Crea usuario `ansible` con sudo NOPASSWD y despliega clave SSH ed25519 |
 | `system_update` | `update`, `upgrade` | `apt update` + `apt upgrade --safe` con autoremove y autoclean |
 | `packages` | `packages` | Instala paquetes base (configurable via `packages_essential_packages`) |
-| `copy_files` | `copy_files` | Crea `/opt/scripts` y despliega archivos desde `roles/copy_files/files/` con permisos diferenciados (0755 scripts, 0644 configs) |
+| `copy_files` | `copy_files` | Crea `/opt/scripts` y despliega archivos desde `roles/copy_files/files/` según `copy_files_list`. Por defecto vacío — poblar en defaults, grupo o vars de host |
 | `git_source_install` | `install_xtop` | Instala xtop desde `.deb` con verificacion SHA256, version check y cleanup via handler |
 | `inventory` | `inventory` | Genera reportes de inventario por host en `inventory-host/` |
 
@@ -291,6 +291,8 @@ packages_essential_packages=["curl", "git", "htop", "jq"]
 
 ### Agregar archivos a desplegar
 
+`copy_files_list` por defecto está vacío — **debes poblarlo** para que los archivos se desplieguen:
+
 1. Colocar los archivos en `roles/copy_files/files/`
 2. Agregar entradas a `roles/copy_files/defaults/main.yml`:
 
@@ -298,8 +300,10 @@ packages_essential_packages=["curl", "git", "htop", "jq"]
 copy_files_list:
   - { src: "script.sh", mode: "0755" }
   - { src: "config.txt", mode: "0644" }
-  - { src: "otro.sh", mode: "0755" }
+  - { src: "zsh.sh", mode: "0755" }
 ```
+
+> ⚠️ El listado se hace explícitamente por seguridad: ningún archivo se despliega sin estar declarado en `copy_files_list`. Si la lista queda vacía, la tarea se salta (`skipping`).
 
 ### Agregar herramientas desde source
 
