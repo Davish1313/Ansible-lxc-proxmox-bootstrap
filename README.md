@@ -298,9 +298,20 @@ packages_essential_packages=["curl", "git", "htop", "jq"]
 
 ```yaml
 copy_files_list:
-  - { src: "script.sh", mode: "0755" }
-  - { src: "config.txt", mode: "0644" }
+  # Scripts ejecutables
+  - { src: "deploy.sh", mode: "0755" }
+  - { src: "backup.sh", mode: "0755" }
+  # Configuraciones
+  - { src: "nginx.conf", mode: "0644" }
+  - { src: ".env.template", mode: "0644" }
+  # Servicios systemd
+  - { src: "myapp.service", mode: "0644" }
+  # Scripts con shebang (zsh, python, etc.)
   - { src: "zsh.sh", mode: "0755" }
+  - { src: "sync.py", mode: "0755" }
+  # Archivos planos / datos
+  - { src: "allowed_ips.txt", mode: "0644" }
+  - { src: "crontab", mode: "0600" }
 ```
 
 > ⚠️ El listado se hace explícitamente por seguridad: ningún archivo se despliega sin estar declarado en `copy_files_list`. Si la lista queda vacía, la tarea se salta (`skipping`).
