@@ -18,7 +18,7 @@
   notify: restart alloy
 
 - name: Validate Alloy config
-  command: alloy fmt --verify {{ alloy_config_path }}
+  command: alloy validate {{ alloy_config_path }}
   changed_when: false
   register: alloy_validate
   ignore_errors: "{{ not alloy_fail_on_invalid | default(false) }}"
