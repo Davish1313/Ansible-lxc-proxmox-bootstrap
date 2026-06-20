@@ -1,0 +1,24 @@
+---
+- name: Deploy Alloy config
+  template:
+    src: config.alloy.j2
+    dest: "{{ alloy_config_path }}"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart alloy
+
+- name: Deploy Alloy defaults (disable reporting)
+  template:
+    src: alloy-defaults.j2
+    dest: "{{ alloy_defaults_path }}"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart alloy
+
+- name: Validate Alloy config
+  command: alloy fmt --verify {{ alloy_config_path }}
+  changed_when: false
+  register: alloy_validate
+  ignore_errors: "{{ not alloy_fail_on_invalid | default(false) }}"

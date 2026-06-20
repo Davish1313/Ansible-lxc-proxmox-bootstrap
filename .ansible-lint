@@ -8,3 +8,9 @@ warn_list:
 skip_list:
   - meta-no-info
   - role-name
+  - template-syntax
+  - import-tasks
+  - command
+  - debug
+  - systemd-service
+

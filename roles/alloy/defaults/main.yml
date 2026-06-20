@@ -1,0 +1,5 @@
+---
+alloy_loki_url: "http://192.168.0.208:3100/loki/api/v1/push"
+alloy_loki_tenant: "tenant1"
+alloy_config_path: "/etc/alloy/config.alloy"
+alloy_defaults_path: "/etc/default/alloy"

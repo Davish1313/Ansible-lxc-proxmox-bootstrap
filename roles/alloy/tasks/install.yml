@@ -1,0 +1,43 @@
+---
+- name: Check if Alloy is installed
+  command: which alloy
+  register: alloy_installed
+  changed_when: false
+  failed_when: false
+
+- name: Install dependencies
+  apt:
+    name:
+      - apt-transport-https
+      - gpg
+      - curl
+    state: present
+    update_cache: true
+  when: alloy_installed.rc != 0
+
+- name: Add Grafana GPG key
+  shell: |
+    curl -fsSL https://apt.grafana.com/gpg.key | gpg --dearmor -o /usr/share/keyrings/grafana.gpg
+  args:
+    creates: /usr/share/keyrings/grafana.gpg
+  when: alloy_installed.rc != 0
+
+- name: Add Grafana apt repository
+  apt_repository:
+    repo: "deb [signed-by=/usr/share/keyrings/grafana.gpg] https://apt.grafana.com stable main"
+    state: present
+    filename: grafana
+  when: alloy_installed.rc != 0
+
+- name: Install Grafana Alloy
+  apt:
+    name: alloy
+    state: present
+    update_cache: true
+  when: alloy_installed.rc != 0
+
+- name: Enable and start Alloy service
+  systemd:
+    name: alloy
+    enabled: true
+    state: started

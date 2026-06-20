@@ -1,0 +1,36 @@
+// Managed by Ansible — do not edit manually
+// Host: {{ inventory_hostname }}
+
+logging {
+  level = "warn"
+}
+
+prometheus.exporter.unix "default" {
+  include_exporter_metrics = true
+  disable_collectors       = ["mdadm"]
+}
+
+prometheus.scrape "default" {
+  targets = array.concat(
+    prometheus.exporter.unix.default.targets,
+    [{
+      job         = "alloy",
+      __address__ = "127.0.0.1:12345",
+    }],
+  )
+  forward_to = []
+}
+
+loki.source.journal "systemd" {
+  forward_to = [loki.write.default.receiver]
+  labels = {
+    host = "{{ inventory_hostname }}",
+  }
+}
+
+loki.write "default" {
+  endpoint {
+    url       = "{{ alloy_loki_url }}"
+    tenant_id = "{{ alloy_loki_tenant }}"
+  }
+}

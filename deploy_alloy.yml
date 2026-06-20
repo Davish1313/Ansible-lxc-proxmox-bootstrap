@@ -1,0 +1,6 @@
+---
+- name: Deploy Grafana Alloy
+  hosts: lxcs
+  become: true
+  roles:
+    - alloy

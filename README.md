@@ -1,6 +1,6 @@
 # LXC Proxmox Bootstrap
 
-Ansible playbook para aprovisionar y mantener contenedores LXC en Proxmox VE. Actualiza el sistema, instala paquetes, despliega archivos y instala herramientas desde fuente.
+Ansible playbook para aprovisionar y mantener contenedores LXC en Proxmox VE. Actualiza el sistema, instala paquetes, despliega archivos, instala herramientas desde fuente y despliega Grafana Alloy para observabilidad.
 
 ## Requisitos
 
@@ -49,6 +49,7 @@ ansible-playbook playbook.yml
 ├── ansible.cfg                   # Configuracion de Ansible (incluye become)
 ├── inventory.ini.example         # Template del inventario
 ├── playbook.yml                  # Playbook principal (dos plays: bootstrap + provision)
+├── deploy_alloy.yml              # Playbook standalone: despliega Grafana Alloy
 ├── inventory.yml                 # Playbook de inventario (reportes por host)
 ├── inventory-host/               # Directorio de salida de reportes (generado)
 └── roles/
@@ -74,6 +75,16 @@ ansible-playbook playbook.yml
     │   ├── defaults/main.yml
     │   ├── tasks/main.yml
     │   └── handlers/main.yml     # Cleanup post-instalacion
+    ├── alloy/                    # Grafana Alloy (Loki logs + node metrics)
+    │   ├── defaults/main.yml     # Config: Loki URL, tenant, paths
+    │   ├── tasks/
+    │   │   ├── main.yml          # import_tasks: install + configure
+    │   │   ├── install.yml       # Instalacion desde repositorio Grafana
+    │   │   └── configure.yml     # Templates + validacion de config
+    │   ├── handlers/main.yml     # restart alloy
+    │   └── templates/
+    │       ├── config.alloy.j2   # Configuracion Alloy (loki + prometheus)
+    │       └── alloy-defaults.j2 # Environment defaults (--disable-reporting)
     └── inventory/                # Reportes de inventario por host
         ├── meta/main.yml
         ├── defaults/main.yml
@@ -196,6 +207,12 @@ ansible-playbook playbook.yml --tags "copy_files"
 # Instalar xtop (incluye verificacion de version)
 ansible-playbook playbook.yml --tags "install_xtop"
 
+# Desplegar Grafana Alloy en todos los LXC
+ansible-playbook deploy_alloy.yml
+
+# Desplegar Grafana Alloy en un host especifico
+ansible-playbook deploy_alloy.yml --limit hostname1
+
 # Generar inventario
 ansible-playbook -i inventory.ini inventory.yml
 
@@ -226,6 +243,7 @@ El playbook ejecuta un pre-flight check automatico de SSH connectivity antes de 
 | `packages` | `packages` | Instala paquetes base (configurable via `packages_essential_packages`) |
 | `copy_files` | `copy_files` | Crea `/opt/scripts` y despliega archivos desde `roles/copy_files/files/` según `copy_files_list`. Por defecto vacío — poblar en defaults, grupo o vars de host |
 | `git_source_install` | `install_xtop` | Instala xtop desde `.deb` con verificacion SHA256, version check y cleanup via handler |
+| `alloy` | — | Despliega Grafana Alloy (Loki logs collector + node metrics) via `deploy_alloy.yml`. Standalone, no incluido en `playbook.yml` |
 | `inventory` | `inventory` | Genera reportes de inventario por host en `inventory-host/` |
 
 ## Seguridad
