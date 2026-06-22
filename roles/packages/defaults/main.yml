@@ -3,3 +3,4 @@ packages_essential_packages:
   - curl
   - btop
   - git
+  - tree
