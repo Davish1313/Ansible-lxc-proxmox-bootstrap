@@ -36,7 +36,7 @@
 
   roles:
     - role: system_update
-      tags: [update, upgrade]
+      tags: [update, upgrade, cleanup]
     - role: packages
       tags: [packages]
     - role: copy_files

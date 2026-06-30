@@ -17,3 +17,11 @@
     - Show updated packages
   tags:
     - upgrade
+
+- name: clean up apt cache
+  ansible.builtin.apt:
+    clean: true
+    autoclean: true
+    autoremove: true
+  tags:
+    - cleanup
