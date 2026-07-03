@@ -6,7 +6,7 @@
     owner: root
     group: root
     mode: "0644"
-  notify: restart alloy
+  notify: Restart alloy
 
 - name: Deploy Alloy defaults (disable reporting)
   ansible.builtin.template:
@@ -15,7 +15,7 @@
     owner: root
     group: root
     mode: "0644"
-  notify: restart alloy
+  notify: Restart alloy
 
 - name: Validate Alloy config
   ansible.builtin.command: alloy validate {{ alloy_config_path }}

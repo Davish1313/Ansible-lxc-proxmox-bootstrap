@@ -18,10 +18,8 @@
   tags:
     - upgrade
 
-- name: clean up apt cache
+- name: Clean apt cache
   ansible.builtin.apt:
     clean: true
-    autoclean: true
-    autoremove: true
   tags:
     - cleanup

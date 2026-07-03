@@ -81,7 +81,7 @@ ansible-playbook playbook.yml
     │   │   ├── main.yml          # import_tasks: install + configure
     │   │   ├── install.yml       # Instalacion desde repositorio Grafana
     │   │   └── configure.yml     # Templates + validacion de config
-    │   ├── handlers/main.yml     # restart alloy
+    │   ├── handlers/main.yml     # Restart alloy
     │   └── templates/
     │       ├── config.alloy.j2   # Configuracion Alloy (loki + prometheus)
     │       └── alloy-defaults.j2 # Environment defaults (--disable-reporting)

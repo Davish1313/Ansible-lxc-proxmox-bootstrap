@@ -36,10 +36,19 @@
   tags:
     - always
 
+- name: Select port source (ss or netstat fallback)
+  ansible.builtin.set_fact:
+    inventory_open_ports_source: >-
+      {{ inventory_open_ports_ss
+         if inventory_open_ports_ss.stdout_lines | default([]) | select('match', '^LISTEN') | list | length > 0
+         else inventory_open_ports_netstat }}
+  tags:
+    - always
+
 - name: Parse open ports
   ansible.builtin.set_fact:
     inventory_open_ports_raw:
-      stdout_lines: "{{ (inventory_open_ports_ss.stdout_lines | default([]))
+      stdout_lines: "{{ (inventory_open_ports_source.stdout_lines | default([]))
         | difference([''])
         | select('match', '^LISTEN')
         | map('split')
