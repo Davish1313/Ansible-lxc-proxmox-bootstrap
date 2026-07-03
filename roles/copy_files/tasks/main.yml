@@ -9,7 +9,7 @@
 - name: Deploy files to target hosts
   ansible.builtin.copy:
     src: "{{ item.src }}"
-    dest: "{{ copy_files_dest }}/{{ item.src }}"
+    dest: "{{ copy_files_dest }}/{{ item.src | basename }}"
     mode: "{{ item.mode }}"
   loop: "{{ copy_files_list }}"
   tags: copy_files

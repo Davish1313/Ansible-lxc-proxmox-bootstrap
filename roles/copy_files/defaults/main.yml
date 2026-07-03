@@ -1,5 +1,5 @@
 ---
 copy_files_dest: "/opt/scripts"
-copy_files_list: 
+copy_files_list:
     - src: "zsh.sh"
       mode: "0755"

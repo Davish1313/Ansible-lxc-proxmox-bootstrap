@@ -1,43 +1,50 @@
 ---
 - name: Check if Alloy is installed
-  command: which alloy
-  register: alloy_installed
+  ansible.builtin.stat:
+    path: /usr/bin/alloy
+  register: alloy_stat
   changed_when: false
-  failed_when: false
 
 - name: Install dependencies
-  apt:
+  ansible.builtin.apt:
     name:
       - apt-transport-https
       - gpg
       - curl
     state: present
     update_cache: true
-  when: alloy_installed.rc != 0
+  when: not alloy_stat.stat.exists
 
-- name: Add Grafana GPG key
-  shell: |
-    curl -fsSL https://apt.grafana.com/gpg.key | gpg --dearmor -o /usr/share/keyrings/grafana.gpg
-  args:
+- name: Download Grafana GPG key
+  ansible.builtin.get_url:
+    url: https://apt.grafana.com/gpg.key
+    dest: /tmp/grafana.asc
+    mode: "0644"
+  when: not alloy_stat.stat.exists
+
+- name: Convert Grafana GPG key to keyring
+  ansible.builtin.command:
+    cmd: gpg --dearmor -o /usr/share/keyrings/grafana.gpg /tmp/grafana.asc
     creates: /usr/share/keyrings/grafana.gpg
-  when: alloy_installed.rc != 0
+  when: not alloy_stat.stat.exists
 
 - name: Add Grafana apt repository
-  apt_repository:
+  ansible.builtin.apt_repository:
     repo: "deb [signed-by=/usr/share/keyrings/grafana.gpg] https://apt.grafana.com stable main"
     state: present
     filename: grafana
-  when: alloy_installed.rc != 0
+  when: not alloy_stat.stat.exists
 
 - name: Install Grafana Alloy
-  apt:
+  ansible.builtin.apt:
     name: alloy
     state: present
     update_cache: true
-  when: alloy_installed.rc != 0
+  when: not alloy_stat.stat.exists
 
 - name: Enable and start Alloy service
-  systemd:
+  ansible.builtin.systemd:
     name: alloy
     enabled: true
     state: started
+  changed_when: false

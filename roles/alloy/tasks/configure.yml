@@ -1,6 +1,6 @@
 ---
 - name: Deploy Alloy config
-  template:
+  ansible.builtin.template:
     src: config.alloy.j2
     dest: "{{ alloy_config_path }}"
     owner: root
@@ -9,7 +9,7 @@
   notify: restart alloy
 
 - name: Deploy Alloy defaults (disable reporting)
-  template:
+  ansible.builtin.template:
     src: alloy-defaults.j2
     dest: "{{ alloy_defaults_path }}"
     owner: root
@@ -18,7 +18,7 @@
   notify: restart alloy
 
 - name: Validate Alloy config
-  command: alloy validate {{ alloy_config_path }}
+  ansible.builtin.command: alloy validate {{ alloy_config_path }}
   changed_when: false
   register: alloy_validate
-  ignore_errors: "{{ not alloy_fail_on_invalid | default(false) }}"
+  failed_when: alloy_validate.rc != 0 and alloy_fail_on_invalid | default(false)

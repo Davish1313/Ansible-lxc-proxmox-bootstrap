@@ -13,4 +13,3 @@ skip_list:
   - command
   - debug
   - systemd-service
-

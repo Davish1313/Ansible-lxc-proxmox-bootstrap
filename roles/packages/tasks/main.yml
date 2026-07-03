@@ -5,11 +5,12 @@
     state: present
     update_cache: true
     cache_valid_time: 3600
-  register: apt_result
+  register: packages_apt_result
   tags: packages
 
-- name: show installed packages
+- name: Show installed packages
   ansible.builtin.debug:
     msg: "Installed package: {{ item }}"
-  loop: "{{ apt_result.results | selectattr('changed', 'equalto', true) | map(attribute='item') | list }}"
-  when: apt_result.changed  
+  loop: "{{ packages_apt_result.results | selectattr('changed', 'equalto', true) | map(attribute='item') | list }}"
+  changed_when: false
+  when: packages_apt_result.results | selectattr('changed', 'equalto', true) | list | length > 0
