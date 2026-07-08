@@ -1,0 +1,44 @@
+---
+- name: Install Python and pip on Debian family
+  ansible.builtin.apt:
+    name:
+      - python3
+      - python3-pip
+      - python3-venv
+    state: present
+    update_cache: true
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Install Python and pip on RedHat family
+  ansible.builtin.dnf:
+    name:
+      - python3
+      - python3-pip
+    state: present
+  when: ansible_facts['os_family'] == "RedHat"
+
+- name: Install Python and pip on Alpine
+  community.general.apk:
+    name:
+      - python3
+      - py3-pip
+    state: present
+  when: ansible_facts['os_family'] == "Alpine"
+
+- name: Verify Python installation
+  ansible.builtin.command: python3 --version
+  register: python_version
+  changed_when: false
+  ignore_errors: true
+
+- name: Verify pip installation
+  ansible.builtin.command: pip3 --version
+  register: pip_version
+  changed_when: false
+  ignore_errors: true
+
+- name: Display installed versions
+  ansible.builtin.debug:
+    msg:
+      - "{{ python_version.stdout | default('python3 not found') }}"
+      - "{{ pip_version.stdout | default('pip3 not found') }}"

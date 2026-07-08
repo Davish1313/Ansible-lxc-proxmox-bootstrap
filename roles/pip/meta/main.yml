@@ -1,0 +1,29 @@
+galaxy_info:
+  role_name: pip
+  description: Install Python3 and pip across Debian, RedHat, and Alpine
+  author: jairdavish
+  license: MIT
+  min_ansible_version: "2.9"
+  platforms:
+    - name: Debian
+      versions:
+        - bookworm
+        - bullseye
+    - name: Ubuntu
+      versions:
+        - jammy
+        - focal
+    - name: EL
+      versions:
+        - "8"
+        - "9"
+    - name: Alpine
+      versions:
+        - all
+  galaxy_tags:
+    - python
+    - pip
+    - bootstrap
+
+dependencies: []
+allow_duplicates: false

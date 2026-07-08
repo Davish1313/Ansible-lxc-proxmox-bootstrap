@@ -1,12 +1,12 @@
 # LXC Proxmox Bootstrap
 
-Ansible playbook para aprovisionar y mantener contenedores LXC en Proxmox VE. Actualiza el sistema, instala paquetes, despliega archivos, instala herramientas desde fuente y despliega Grafana Alloy para observabilidad.
+Ansible playbook para aprovisionar y mantener contenedores LXC en Proxmox VE. Actualiza el sistema, instala paquetes, despliega archivos, instala herramientas desde fuente, despliega Grafana Alloy para observabilidad y bootstrapea Python/pip en servidores que no lo tengan.
 
 ## Requisitos
 
 - Ansible >= 2.14
 - Acceso SSH a los contenedores LXC
-- Python 3 en los hosts remotos
+- Python 3 en los hosts remotos (o usar `deploy_pip.yml` si no está presente)
 
 ## Inicio rápido
 
@@ -50,6 +50,7 @@ ansible-playbook playbook.yml
 ├── inventory.ini.example         # Template del inventario
 ├── playbook.yml                  # Playbook principal (dos plays: bootstrap + provision)
 ├── deploy_alloy.yml              # Playbook standalone: despliega Grafana Alloy
+├── deploy_pip.yml                # Playbook standalone: bootstrap Python3 + pip
 ├── inventory.yml                 # Playbook de inventario (reportes por host)
 ├── inventory-host/               # Directorio de salida de reportes (generado)
 └── roles/
@@ -85,6 +86,9 @@ ansible-playbook playbook.yml
     │   └── templates/
     │       ├── config.alloy.j2   # Configuracion Alloy (loki + prometheus)
     │       └── alloy-defaults.j2 # Environment defaults (--disable-reporting)
+    ├── pip/                      # Instalacion de Python3 + pip (Debian/RedHat/Alpine)
+    │   ├── meta/main.yml
+    │   └── tasks/main.yml
     └── inventory/                # Reportes de inventario por host
         ├── meta/main.yml
         ├── defaults/main.yml
@@ -207,6 +211,12 @@ ansible-playbook playbook.yml --tags "copy_files"
 # Instalar xtop (incluye verificacion de version)
 ansible-playbook playbook.yml --tags "install_xtop"
 
+# Bootstrap Python3 + pip (servidores sin Python)
+ansible-playbook deploy_pip.yml
+
+# Bootstrap Python3 en host especifico
+ansible-playbook deploy_pip.yml --limit hostname1
+
 # Desplegar Grafana Alloy en todos los LXC
 ansible-playbook deploy_alloy.yml
 
@@ -244,6 +254,7 @@ El playbook ejecuta un pre-flight check automatico de SSH connectivity antes de 
 | `copy_files` | `copy_files` | Crea `/opt/scripts` y despliega archivos desde `roles/copy_files/files/` según `copy_files_list`. Por defecto vacío — poblar en defaults, grupo o vars de host |
 | `git_source_install` | `install_xtop` | Instala xtop desde `.deb` con verificacion SHA256, version check y cleanup via handler |
 | `alloy` | — | Despliega Grafana Alloy (Loki logs collector + node metrics) via `deploy_alloy.yml`. Standalone, no incluido en `playbook.yml` |
+| `pip` | `pip` | Instala Python3 + pip3 + venv via `deploy_pip.yml`. Standalone, con raw bootstrap para servidores sin Python. Multi-distro (Debian/RedHat/Alpine) |
 | `inventory` | `inventory` | Genera reportes de inventario por host en `inventory-host/` |
 
 ## Seguridad
