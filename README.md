@@ -51,7 +51,7 @@ ansible-playbook playbook.yml
 ├── playbook.yml                  # Playbook principal (dos plays: bootstrap + provision)
 ├── deploy_alloy.yml              # Playbook standalone: despliega Grafana Alloy
 ├── deploy_pip.yml                # Playbook standalone: bootstrap Python3 + pip
-├── inventory.yml                 # Playbook de inventario (reportes por host)
+├── inventory_hosts.yml                 # Playbook de inventario (reportes por host)
 ├── inventory-host/               # Directorio de salida de reportes (generado)
 └── roles/
     ├── bootstrap_user/           # Creacion usuario ansible + sudo + SSH keys
@@ -89,7 +89,7 @@ ansible-playbook playbook.yml
     ├── pip/                      # Instalacion de Python3 + pip (Debian/RedHat/Alpine)
     │   ├── meta/main.yml
     │   └── tasks/main.yml
-    └── inventory/                # Reportes de inventario por host
+    └── inventory_hosts/          # Reportes de inventario por host
         ├── meta/main.yml
         ├── defaults/main.yml
         ├── tasks/main.yml
@@ -158,17 +158,17 @@ ansible-playbook playbook.yml --tags "update" --limit infra
 
 ### Generar Reporte de Inventario
 
-El playbook `inventory.yml` genera reportes detallados por host en `inventory-host/` (todas las tasks usan `tags: always`):
+El playbook `inventory_hosts.yml` genera reportes detallados por host en `inventory-host/` (todas las tasks usan `tags: always`):
 
 ```bash
 # Todos los hosts
-ansible-playbook -i inventory.ini inventory.yml
+ansible-playbook -i inventory.ini inventory_hosts.yml
 
 # Host especifico
-ansible-playbook -i inventory.ini inventory.yml --limit hostname1
+ansible-playbook -i inventory.ini inventory_hosts.yml --limit hostname1
 
 # Multiples hosts
-ansible-playbook -i inventory.ini inventory.yml --limit "host1,host2"
+ansible-playbook -i inventory.ini inventory_hosts.yml --limit "host1,host2"
 ```
 
 El reporte incluye: sistema operativo, CPU, RAM, disco, red, servicios, puertos, usuarios y paquetes instalados.
@@ -224,7 +224,7 @@ ansible-playbook deploy_alloy.yml
 ansible-playbook deploy_alloy.yml --limit hostname1
 
 # Generar inventario
-ansible-playbook -i inventory.ini inventory.yml
+ansible-playbook -i inventory.ini inventory_hosts.yml
 
 # Combinar tags
 ansible-playbook playbook.yml --tags "update,packages"
@@ -255,7 +255,7 @@ El playbook ejecuta un pre-flight check automatico de SSH connectivity antes de 
 | `git_source_install` | `install_xtop` | Instala xtop desde `.deb` con verificacion SHA256, version check y cleanup via handler |
 | `alloy` | — | Despliega Grafana Alloy (Loki logs collector + node metrics) via `deploy_alloy.yml`. Standalone, no incluido en `playbook.yml` |
 | `pip` | `pip` | Instala Python3 + pip3 + venv via `deploy_pip.yml`. Standalone, con raw bootstrap para servidores sin Python. Multi-distro (Debian/RedHat/Alpine) |
-| `inventory` | `inventory` | Genera reportes de inventario por host en `inventory-host/` |
+| `inventory_hosts` | `inventory_hosts` | Genera reportes de inventario por host en `inventory-host/` |
 
 ## Seguridad
 

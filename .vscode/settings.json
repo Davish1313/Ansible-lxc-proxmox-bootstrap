@@ -1,6 +1,34 @@
 {
     "files.associations": {
-         "inventory.yml": "ansible"
+         "inventory_hosts.yml": "ansible"
 
+    },
+    "yaml.disableSchemaDetection": [
+        "**/docker-compose.yml",
+        "**/docker-compose.yaml",
+        "**/docker-compose.*.yml",
+        "**/docker-compose.*.yaml",
+        "**/compose.yml",
+        "**/compose.yaml",
+        "**/compose.*.yml",
+        "**/compose.*.yaml",
+        "**/.github/workflows/*.yml",
+        "**/.github/workflows/*.yaml",
+        "**/.gitea/workflows/*.yml",
+        "**/.gitea/workflows/*.yaml",
+        "**/.forgejo/workflows/*.yml",
+        "**/.forgejo/workflows/*.yaml"
+    ],
+    "yaml.schemas": {
+        "file:///Users/jairdavish/.vscode/extensions/continue.continue-1.2.22-darwin-arm64/config-yaml-schema.json": [
+            ".continue/**/*.yaml"
+        ],
+        "file:///Users/jairdavish/.vscode/extensions/continue.continue-1.2.24-darwin-arm64/config-yaml-schema.json": [
+            ".continue/**/*.yaml"
+        ],
+        "https://raw.githubusercontent.com/ansible/ansible-lint/main/src/ansiblelint/schemas/ansible.json#/$defs/playbook": [
+            "file:///Users/jairdavish/Library/CloudStorage/SynologyDrive-SynologyFolder/PERSONAL/Proyectos/ansible-lab/lxc-proxmox-bootstrap-prod/deploy_alloy.yml",
+            "file:///Users/jairdavish/Library/CloudStorage/SynologyDrive-SynologyFolder/PERSONAL/Proyectos/ansible-lab/lxc-proxmox-bootstrap-prod/deploy_pip.yml"
+        ]
     }
 }

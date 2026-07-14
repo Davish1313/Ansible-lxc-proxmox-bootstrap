@@ -1,5 +1,5 @@
 galaxy_info:
-  role_name: inventory
+  role_name: inventory_hosts
   description: Generate comprehensive host inventory reports in YAML format
   author: jairdavish
   license: MIT

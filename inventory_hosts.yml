@@ -13,5 +13,5 @@
       tags: always
 
   roles:
-    - role: inventory
-      tags: [inventory]
+    - role: inventory_hosts
+      tags: [inventory_hosts]
