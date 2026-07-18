@@ -5,3 +5,6 @@ packages_essential_packages:
   - tree
   - sqlite3
   - dnsutils
+  - rsync
+  - needrestart
+  
