@@ -249,7 +249,7 @@ El playbook ejecuta un pre-flight check automatico de SSH connectivity antes de 
 | Role | Tags | Descripcion |
 |------|------|-------------|
 | `bootstrap_user` | `bootstrap` | Crea usuario `ansible` con sudo NOPASSWD y despliega clave SSH ed25519 |
-| `system_update` | `update`, `upgrade` | `apt update` + `apt upgrade --safe` con autoremove y autoclean |
+| `system_update` | `update`, `upgrade` | `apt update` + `apt upgrade --safe` con autoremove, autoclean y needrestart post-upgrade (reinicia servicios automáticamente) |
 | `packages` | `packages` | Instala paquetes base (configurable via `packages_essential_packages`) |
 | `copy_files` | `copy_files` | Crea `/opt/scripts` y despliega archivos desde `roles/copy_files/files/` según `copy_files_list`. Por defecto vacío — poblar en defaults, grupo o vars de host |
 | `git_source_install` | `install_xtop` | Instala xtop desde `.deb` con verificacion SHA256, version check y cleanup via handler |

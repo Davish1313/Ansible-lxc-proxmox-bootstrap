@@ -23,3 +23,64 @@
     clean: true
   tags:
     - cleanup
+
+- name: Check if needrestart is available
+  ansible.builtin.stat:
+    path: /usr/sbin/needrestart
+  register: system_update_needrestart_bin
+  changed_when: false
+  tags:
+    - upgrade
+
+- name: Detect services needing restart after upgrade
+  ansible.builtin.command:
+    cmd: needrestart -b -p
+  register: system_update_needrestart_result
+  changed_when: false
+  failed_when: false
+  when: system_update_needrestart_bin.stat.exists
+  tags:
+    - upgrade
+
+- name: Extract services to restart
+  ansible.builtin.set_fact:
+    system_update_needrestart_services: >-
+      {{
+        system_update_needrestart_result.stdout_lines | default([])
+        | map('regex_findall', 'NEEDRESTART-SVC:\\s+(\\S+)')
+        | flatten
+        | select('match', '.+')
+        | list
+      }}
+  when: system_update_needrestart_bin.stat.exists
+  changed_when: false
+  tags:
+    - upgrade
+
+- name: Restart services needing restart
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    state: restarted
+  loop: "{{ system_update_needrestart_services | default([]) }}"
+  register: system_update_needrestart_restarted
+  when: system_update_needrestart_services | default([]) | length > 0
+  tags:
+    - upgrade
+
+- name: Show services restarted by needrestart
+  ansible.builtin.debug:
+    msg: "Restarted services: {{ system_update_needrestart_services | default([]) | join(', ') }}"
+  when: system_update_needrestart_services | default([]) | length > 0
+  changed_when: false
+  tags:
+    - upgrade
+
+- name: Kernel restart required
+  ansible.builtin.debug:
+    msg: "NEEDRESTART-KSTA:1 detected — host reboot recommended"
+  when: >-
+    system_update_needrestart_result.stdout_lines | default([])
+    | select('match', 'NEEDRESTART-KSTA:.*1') | list | length > 0
+  changed_when: false
+  tags:
+    - upgrade
