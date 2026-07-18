@@ -1,16 +1,17 @@
 ---
-- name: Install essential system packages via APT (curl, btop, git)
+- name: Install essential system packages via APT
   ansible.builtin.apt:
-    name: "{{ packages_essential_packages }}"
+    name: "{{ item }}"
     state: present
     update_cache: true
     cache_valid_time: 3600
+  loop: "{{ packages_essential_packages }}"
   register: packages_apt_result
   tags: packages
 
 - name: Show installed packages
   ansible.builtin.debug:
-    msg: "Installed package: {{ item }}"
-  loop: "{{ packages_apt_result.results | selectattr('changed', 'equalto', true) | map(attribute='item') | list }}"
+    msg: "Installed package: {{ item.item }}"
+  loop: "{{ packages_apt_result.results | selectattr('changed', 'equalto', true) | list }}"
   changed_when: false
   when: packages_apt_result.results | selectattr('changed', 'equalto', true) | list | length > 0
