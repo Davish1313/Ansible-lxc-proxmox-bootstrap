@@ -4,7 +4,7 @@
 
 inventory:
   hostname: "{{ inventory_hostname }}"
-  ansible_host: "{{ ansible_facts['ansible_host'] }}"
+  ansible_host: "{{ ansible_host }}"
   generated_at: "{{ ansible_facts['date_time']['iso8601'] }}"
 
   system:
