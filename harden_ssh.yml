@@ -1,0 +1,18 @@
+---
+- name: SSH hardening for LXC containers
+  hosts: "{{ target_hosts | default('lxcs') }}"
+  gather_facts: false
+  become: true
+  pre_tasks:
+    - name: Verify SSH connectivity
+      ansible.builtin.ping:
+      tags: always
+
+    - name: Display target host info
+      ansible.builtin.debug:
+        msg: "Target: {{ inventory_hostname }} ({{ ansible_host }}:{{ ansible_port }})"
+      tags: always
+
+  roles:
+    - role: ssh_hardening
+      tags: [ssh, hardening]

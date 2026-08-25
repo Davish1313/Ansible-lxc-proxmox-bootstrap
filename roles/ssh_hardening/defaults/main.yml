@@ -1,0 +1,81 @@
+---
+# ============================================================
+# ssh_hardening - Endurece sshd via drop-in en sshd_config.d
+# ============================================================
+#
+# Ejecucion:
+#   ansible-playbook harden_ssh.yml
+#   ansible-playbook harden_ssh.yml -e target_hosts=web
+#
+# Requisito previo: acceso por clave SSH ya validado para root.
+#
+# Deteccion de estado previo:
+#   Lee la configuracion EFECTIVA de sshd (sshd -T). Si TODAS las
+#   directivas ya coinciden con los valores deseados (p. ej.
+#   aplicadas manualmente), el rol no modifica nada ni reinicia ssh.
+#
+# Extras para VPS publico:
+#   Si el host pertenece a un grupo de inventario listado en
+#   ssh_hardening_vps_inventory_groups (p. ej. [vps]), se agrega
+#   MaxStartups al drop-in y se instala fail2ban con jail sshd.
+#
+# Compatibilidad:
+#   KbdInteractiveAuthentication solo se aplica si el sshd del host
+#   reconoce la directiva (OpenSSH >= 8.7); en versiones antiguas una
+#   palabra clave desconocida impide que sshd arranque.
+#   fail2ban usa backend systemd (Debian 12 no tiene /var/log/auth.log).
+#
+# El rol aborta si se intenta deshabilitar passwords sin clave
+# de root desplegada (proteccion anti-lockout).
+#
+# Rollback:
+#   rm /etc/ssh/sshd_config.d/99-ansible-hardening.conf
+#   systemctl restart ssh
+#   apt remove fail2ban   # solo hosts VPS
+# ============================================================
+
+ssh_hardening_sshd_config_dir: /etc/ssh/sshd_config.d
+ssh_hardening_dropin_dest: "{{ ssh_hardening_sshd_config_dir }}/99-ansible-hardening.conf"
+
+# Directivas del drop-in. Tambien definen el estado objetivo para la
+# deteccion de hardening previo: todas deben coincidir para saltarse
+# la ejecucion.
+ssh_hardening_base_directives:
+  PasswordAuthentication: "no"
+  PermitRootLogin: prohibit-password
+  PubkeyAuthentication: "yes"
+  KbdInteractiveAuthentication: "no"
+  LoginGraceTime: 30
+  ClientAliveInterval: 300
+  ClientAliveCountMax: 2
+  X11Forwarding: "no"
+
+# Directivas adicionales para hosts expuestos a internet.
+ssh_hardening_vps_directives:
+  MaxStartups: "10:30:60"
+
+# Grupos de inventario que reciben los extras de VPS.
+ssh_hardening_vps_inventory_groups:
+  - vps
+
+ssh_hardening_directives: >-
+  {{
+    ssh_hardening_base_directives
+    | combine(
+        ssh_hardening_vps_directives
+        if (group_names | intersect(ssh_hardening_vps_inventory_groups) | length > 0)
+        else {}
+      )
+  }}
+
+ssh_hardening_is_vps: "{{ group_names | intersect(ssh_hardening_vps_inventory_groups) | length > 0 }}"
+
+# fail2ban (solo VPS)
+ssh_hardening_fail2ban_packages:
+  - fail2ban
+  - python3-systemd
+ssh_hardening_fail2ban_jail_dest: /etc/fail2ban/jail.d/sshd-hardening.local
+ssh_hardening_fail2ban_port: ssh
+ssh_hardening_fail2ban_maxretry: 5
+ssh_hardening_fail2ban_findtime: 10m
+ssh_hardening_fail2ban_bantime: 1h

@@ -1,0 +1,164 @@
+---
+- name: Capture effective sshd configuration with self-healing
+  tags: hardening
+  block:
+    - name: Run sshd -T to capture effective configuration
+      ansible.builtin.command: /usr/sbin/sshd -T
+      changed_when: false
+      register: ssh_hardening_effective_config
+  rescue:
+    - name: Remove corrupt drop-in causing sshd parse failure
+      ansible.builtin.file:
+        path: "{{ ssh_hardening_dropin_dest }}"
+        state: absent
+      when: ssh_hardening_dropin_dest is defined
+
+    - name: Retry sshd -T after cleanup
+      ansible.builtin.command: /usr/sbin/sshd -T
+      changed_when: false
+      register: ssh_hardening_effective_config
+
+- name: Check if sshd supports KbdInteractiveAuthentication keyword
+  ansible.builtin.set_fact:
+    ssh_hardening_kbd_supported: >-
+      {{ ssh_hardening_effective_config.stdout is search('^kbdinteractiveauthentication[ \t]', ignorecase=true, multiline=true) }}
+  tags: hardening
+
+- name: Build applicable directives for this sshd version
+  ansible.builtin.set_fact:
+    ssh_hardening_applicable_directives: >-
+      {{
+        ssh_hardening_directives | dict2items
+        | rejectattr('key', 'equalto', 'KbdInteractiveAuthentication')
+        | items2dict
+        if not (ssh_hardening_kbd_supported | bool)
+        else ssh_hardening_directives
+      }}
+  tags: hardening
+
+- name: Detect directives differing from effective configuration
+  ansible.builtin.set_fact:
+    ssh_hardening_drifted_keys: "{{ ssh_hardening_drifted_keys | default([]) + [item.key] }}"
+  loop: "{{ ssh_hardening_applicable_directives | dict2items }}"
+  when: >-
+    ssh_hardening_effective_config.stdout is not search(
+      '^' ~ (item.key | lower) ~ '[ \t]+' ~ ((item.value | string | lower) | regex_escape) ~ '[ \t]*$',
+      ignorecase=true,
+      multiline=true)
+  changed_when: false
+  tags: hardening
+
+- name: Set hardening-already-applied flag
+  ansible.builtin.set_fact:
+    ssh_hardening_already_applied: "{{ ssh_hardening_drifted_keys | default([]) | length == 0 }}"
+  tags: hardening
+
+- name: Report existing hardening status
+  ansible.builtin.debug:
+    msg: >-
+      Hardening ya aplicado en este host. Sin cambios.
+  when: ssh_hardening_already_applied | bool
+  tags: hardening
+
+- name: Verify root authorized_keys before disabling password auth
+  ansible.builtin.stat:
+    path: /root/.ssh/authorized_keys
+  register: ssh_hardening_root_authorized_keys
+  when:
+    - not (ssh_hardening_already_applied | bool)
+    - ssh_hardening_directives['PasswordAuthentication'] == 'no'
+  tags: hardening
+
+- name: Fail if disabling passwords without root key deployed
+  ansible.builtin.fail:
+    msg: >-
+      No root SSH key found in /root/.ssh/authorized_keys.
+      Deploy a validated key before disabling PasswordAuthentication.
+  when:
+    - not (ssh_hardening_already_applied | bool)
+    - ssh_hardening_directives['PasswordAuthentication'] == 'no'
+    - not (ssh_hardening_root_authorized_keys.stat.exists and ssh_hardening_root_authorized_keys.stat.size | int > 0)
+  tags: hardening
+
+- name: Ensure sshd drop-in directory exists
+  ansible.builtin.file:
+    path: "{{ ssh_hardening_sshd_config_dir }}"
+    state: directory
+    mode: "0755"
+    owner: root
+    group: root
+  when: not (ssh_hardening_already_applied | bool)
+  tags: hardening
+
+- name: Ensure sshd_config includes drop-in directory
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    line: "Include {{ ssh_hardening_sshd_config_dir }}/*.conf"
+    regexp: "^Include\\s+{{ ssh_hardening_sshd_config_dir | regex_escape }}/\\*\\.conf\\s*$"
+    insertbefore: BOF
+    state: present
+    backup: true
+  when: not (ssh_hardening_already_applied | bool)
+  tags: hardening
+
+- name: Show applicable directives before deploy
+  ansible.builtin.debug:
+    var: ssh_hardening_applicable_directives
+  when: not (ssh_hardening_already_applied | bool)
+  tags: hardening
+
+- name: Deploy SSH hardening drop-in
+  ansible.builtin.copy:
+    content: |
+      # Managed by ansible ssh_hardening role — do not edit manually.
+      {% for item in ssh_hardening_applicable_directives | dict2items %}
+      {{ item.key }} {{ item.value }}
+      {% endfor %}
+    dest: "{{ ssh_hardening_dropin_dest }}"
+    mode: "0644"
+    owner: root
+    group: root
+  notify: Restart sshd
+  when: not (ssh_hardening_already_applied | bool)
+  tags: hardening
+
+- name: Validate sshd configuration before restart
+  ansible.builtin.command: /usr/sbin/sshd -t
+  changed_when: false
+  when: not (ssh_hardening_already_applied | bool)
+  tags: hardening
+
+- name: Install fail2ban on exposed hosts
+  ansible.builtin.apt:
+    name: "{{ ssh_hardening_fail2ban_packages }}"
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+  when: ssh_hardening_is_vps | bool
+  tags: hardening
+
+- name: Deploy fail2ban sshd jail
+  ansible.builtin.copy:
+    content: |
+      [sshd]
+      enabled = true
+      backend = systemd
+      port = {{ ssh_hardening_fail2ban_port }}
+      maxretry = {{ ssh_hardening_fail2ban_maxretry }}
+      findtime = {{ ssh_hardening_fail2ban_findtime }}
+      bantime = {{ ssh_hardening_fail2ban_bantime }}
+    dest: "{{ ssh_hardening_fail2ban_jail_dest }}"
+    mode: "0644"
+    owner: root
+    group: root
+  notify: Restart fail2ban
+  when: ssh_hardening_is_vps | bool
+  tags: hardening
+
+- name: Enable and start fail2ban
+  ansible.builtin.systemd:
+    name: fail2ban
+    state: started
+    enabled: true
+  when: ssh_hardening_is_vps | bool
+  tags: hardening
