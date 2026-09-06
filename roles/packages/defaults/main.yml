@@ -1,13 +1,16 @@
 ---
 packages_essential_packages:
-  - curl
-  - btop
-  - tree
-  - sqlite3
-  - dnsutils
-  - rsync
-  - needrestart
-  - net-tools
-  - ncdu
-  - nmap
-  - mtr
+  - curl          # transferencias HTTP/FTP desde CLI, universal
+  - btop          # monitor en vivo de CPU, RAM, discos y red
+  - tree          # listar directorios en árbol
+  - sqlite3       # CLI para bases de datos SQLite
+  - dnsutils      # herramientas DNS: dig, nslookup, host
+  - rsync         # sincronización/backup de archivos entre hosts
+  - needrestart   # detecta servicios que requieren reinicio tras apt upgrade
+  - net-tools     # herramientas de red clásicas: ifconfig, netstat, route
+  - ncdu          # análisis interactivo del uso de disco en terminal
+  - nmap          # escaneo de puertos y reconocimiento de red
+  - mtr           # traceroute combinado con ping continuo (diagnóstico de red)
+  - fd-find       # alternativo rápido a find (se ejecuta como fdfind)
+  - zoxide        # gestor de directorios basado en frecuencia y recencia (alternativa a autojump)
+  - ripgrep       # búsqueda rápida en archivos (alternativa a grep)
