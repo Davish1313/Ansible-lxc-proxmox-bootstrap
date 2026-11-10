@@ -14,3 +14,4 @@ packages_essential_packages:
   - fd-find       # alternativo rápido a find (se ejecuta como fdfind)
   - zoxide        # gestor de directorios basado en frecuencia y recencia (alternativa a autojump)
   - ripgrep       # búsqueda rápida en archivos (alternativa a grep)
+  - tmux          # multiplexor de terminales (alternativa a screen)
