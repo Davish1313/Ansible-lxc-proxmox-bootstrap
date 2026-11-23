@@ -1,4 +1,4 @@
 ---
-# needrestart role defaults
-needrestart_check_command: needrestart -r l
-needrestart_restart_command: needrestart -r a
+# needrestart silencia sus notices en ejecuciones no interactivos sin -v.
+needrestart_check_command: needrestart -v -r l
+needrestart_restart_command: needrestart -v -r a
