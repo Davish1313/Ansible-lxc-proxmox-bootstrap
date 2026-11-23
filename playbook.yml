@@ -39,7 +39,7 @@
       tags: [update, upgrade, cleanup]
     - role: packages
       tags: [packages]
-    # Tags: needrestart (solo informe), reinicie (reinicia servicios)
+    # Tags: needrestart (solo informe), restart (reinicia servicios)
     - role: needrestart
     - role: copy_files
       tags: [copy_files]

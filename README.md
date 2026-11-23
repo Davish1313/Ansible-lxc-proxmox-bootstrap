@@ -213,7 +213,7 @@ ansible-playbook playbook.yml --tags "packages"
 ansible-playbook playbook.yml --tags "needrestart"
 
 # Reiniciar servicios pendientes
-ansible-playbook playbook.yml --tags "reinicie"
+ansible-playbook playbook.yml --tags "restart"
 
 # Solo desplegar archivos
 ansible-playbook playbook.yml --tags "copy_files"
@@ -261,7 +261,7 @@ El playbook ejecuta un pre-flight check automatico de SSH connectivity antes de 
 | `bootstrap_user` | `bootstrap` | Crea usuario `ansible` con sudo NOPASSWD y despliega clave SSH ed25519 |
 | `system_update` | `update`, `upgrade`, `cleanup` | `apt update` + `apt upgrade --safe` con autoremove, autoclean y limpieza de caché |
 | `packages` | `packages` | Instala paquetes base (configurable via `packages_essential_packages`) |
-| `needrestart` | `needrestart`, `reinicie` | Lista servicios/kernel pendientes de reinicio; el tag `reinicie` ejecuta los reinicios (el run completo no los ejecuta) |
+| `needrestart` | `needrestart`, `restart` | Lista servicios/kernel pendientes de reinicio; el tag `restart` ejecuta los reinicios (el run completo no los ejecuta) |
 | `copy_files` | `copy_files` | Crea `/opt/scripts` y despliega archivos desde `roles/copy_files/files/` según `copy_files_list`. Por defecto vacío — poblar en defaults, grupo o vars de host |
 | `git_source_install` | `install_xtop` | Instala xtop desde `.deb` con verificacion SHA256, version check y cleanup via handler |
 | `alloy` | — | Despliega Grafana Alloy (Loki logs collector + node metrics) via `deploy_alloy.yml`. Standalone, no incluido en `playbook.yml` |
