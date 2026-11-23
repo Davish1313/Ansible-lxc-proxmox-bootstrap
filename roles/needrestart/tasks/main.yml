@@ -1,0 +1,38 @@
+---
+# needrestart no tiene modulo nativo en Ansible: se usa `command` sin shell.
+- name: Ensure needrestart is installed
+  ansible.builtin.apt:
+    name: needrestart
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+  tags: [needrestart, reinicie]
+
+- name: List services requiring restart
+  ansible.builtin.command:
+    cmd: "{{ needrestart_check_command }}"
+  register: needrestart_check_result
+  changed_when: false
+  tags: [needrestart, reinicie]
+
+- name: Show services requiring restart
+  ansible.builtin.debug:
+    msg: "{{ needrestart_check_result.stdout }}"
+  when: needrestart_check_result.stdout | length > 0
+  changed_when: false
+  tags: [needrestart, reinicie]
+
+# `never` evita que un run completo reinicie servicios; solo `--tags reinicie`.
+- name: Restart services needing restart
+  ansible.builtin.command:
+    cmd: "{{ needrestart_restart_command }}"
+  register: needrestart_restart_result
+  changed_when: "'Restarting services' in needrestart_restart_result.stdout"
+  tags: [reinicie, never]
+
+- name: Show restart result
+  ansible.builtin.debug:
+    msg: "{{ needrestart_restart_result.stdout }}"
+  when: needrestart_restart_result.stdout | length > 0
+  changed_when: false
+  tags: [reinicie, never]

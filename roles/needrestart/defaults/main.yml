@@ -1,0 +1,4 @@
+---
+# needrestart role defaults
+needrestart_check_command: needrestart -r l
+needrestart_restart_command: needrestart -r a

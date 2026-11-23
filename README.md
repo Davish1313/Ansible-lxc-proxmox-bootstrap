@@ -66,6 +66,10 @@ ansible-playbook playbook.yml
     │   ├── meta/main.yml
     │   ├── defaults/main.yml
     │   └── tasks/main.yml
+    ├── needrestart/              # Informe y reinicio de servicios pendientes
+    │   ├── defaults/main.yml
+    │   ├── tasks/main.yml
+    │   └── meta/main.yml
     ├── copy_files/               # Despliegue de archivos a /opt/scripts
     │   ├── meta/main.yml
     │   ├── defaults/main.yml     # copy_files_list: [] (poblar con archivos a desplegar)
@@ -205,6 +209,12 @@ ansible-playbook playbook.yml --tags "upgrade"
 # Solo instalar paquetes
 ansible-playbook playbook.yml --tags "packages"
 
+# Solo ver que servicios requieren reinicio (no reinicia nada)
+ansible-playbook playbook.yml --tags "needrestart"
+
+# Reiniciar servicios pendientes
+ansible-playbook playbook.yml --tags "reinicie"
+
 # Solo desplegar archivos
 ansible-playbook playbook.yml --tags "copy_files"
 
@@ -249,8 +259,9 @@ El playbook ejecuta un pre-flight check automatico de SSH connectivity antes de 
 | Role | Tags | Descripcion |
 |------|------|-------------|
 | `bootstrap_user` | `bootstrap` | Crea usuario `ansible` con sudo NOPASSWD y despliega clave SSH ed25519 |
-| `system_update` | `update`, `upgrade` | `apt update` + `apt upgrade --safe` con autoremove, autoclean y needrestart post-upgrade (reinicia servicios automáticamente) |
+| `system_update` | `update`, `upgrade`, `cleanup` | `apt update` + `apt upgrade --safe` con autoremove, autoclean y limpieza de caché |
 | `packages` | `packages` | Instala paquetes base (configurable via `packages_essential_packages`) |
+| `needrestart` | `needrestart`, `reinicie` | Lista servicios/kernel pendientes de reinicio; el tag `reinicie` ejecuta los reinicios (el run completo no los ejecuta) |
 | `copy_files` | `copy_files` | Crea `/opt/scripts` y despliega archivos desde `roles/copy_files/files/` según `copy_files_list`. Por defecto vacío — poblar en defaults, grupo o vars de host |
 | `git_source_install` | `install_xtop` | Instala xtop desde `.deb` con verificacion SHA256, version check y cleanup via handler |
 | `alloy` | — | Despliega Grafana Alloy (Loki logs collector + node metrics) via `deploy_alloy.yml`. Standalone, no incluido en `playbook.yml` |
