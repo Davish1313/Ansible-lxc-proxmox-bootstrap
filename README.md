@@ -255,6 +255,8 @@ needrestart_deferred_allowlist:
 
 Las unidades de sesión `user@UID.service` nunca se reinician, incluso si aparecen en esta allowlist; permanecen como intervención manual.
 
+Las ejecuciones de `needrestart` desde Ansible desactivan sus `notify.d` (`write`, `notify-send` y `mail`) para evitar un `SIGPIPE` cuando hay sesiones con binarios obsoletos; esas sesiones siguen apareciendo en el resumen global.
+
 Limitar a un host:
 
 ```bash

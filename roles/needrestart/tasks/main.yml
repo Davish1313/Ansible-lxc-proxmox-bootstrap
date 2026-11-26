@@ -13,9 +13,7 @@
     cmd: "{{ needrestart_check_command }}"
   register: needrestart_check_result
   changed_when: false
-  environment:
-    LC_ALL: C
-    LANGUAGE: C
+  environment: "{{ needrestart_command_environment }}"
   tags: [needrestart, restart, restart_deferred]
 
 - name: Parse deferred service restart units
@@ -57,9 +55,7 @@
     cmd: "{{ needrestart_restart_command }}"
   register: needrestart_restart_result
   changed_when: "'Restarting services' in needrestart_restart_result.stdout"
-  environment:
-    LC_ALL: C
-    LANGUAGE: C
+  environment: "{{ needrestart_command_environment }}"
   tags: [restart, never]
 
 - name: Show restart result
@@ -89,9 +85,7 @@
     cmd: "{{ needrestart_check_command }}"
   register: needrestart_deferred_verify_result
   changed_when: false
-  environment:
-    LC_ALL: C
-    LANGUAGE: C
+  environment: "{{ needrestart_command_environment }}"
   tags: [restart_deferred, never]
 
 # Clasificación por host; el play final de playbook.yml agrega estos facts.

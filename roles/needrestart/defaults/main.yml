@@ -12,3 +12,12 @@ needrestart_summary_marker_kernel: "pending kernel upgrade!"
 
 # Unidades systemd permitidas para `--tags restart_deferred`.
 needrestart_deferred_allowlist: []
+
+# En ejecuciones no interactivas, los notify.d de needrestart pueden salir sin
+# leer stdin y provocar SIGPIPE (rc 141) cuando hay sesiones de usuario obsoletas.
+needrestart_command_environment:
+  LC_ALL: C
+  LANGUAGE: C
+  NR_NOTIFYD_DISABLE_WRITE: "1"
+  NR_NOTIFYD_DISABLE_NOTIFY_SEND: "1"
+  NR_NOTIFYD_DISABLE_MAIL: "1"
