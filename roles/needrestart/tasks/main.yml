@@ -6,14 +6,43 @@
     state: present
     update_cache: true
     cache_valid_time: 3600
-  tags: [needrestart, restart]
+  tags: [needrestart, restart, restart_deferred]
 
 - name: List services requiring restart
   ansible.builtin.command:
     cmd: "{{ needrestart_check_command }}"
   register: needrestart_check_result
   changed_when: false
-  tags: [needrestart, restart]
+  environment:
+    LC_ALL: C
+    LANGUAGE: C
+  tags: [needrestart, restart, restart_deferred]
+
+- name: Parse deferred service restart units
+  ansible.builtin.set_fact:
+    needrestart_deferred_units: "{{ needrestart_deferred_units_parsed }}"
+    needrestart_deferred_outside_allowlist: >-
+      {{ needrestart_deferred_units_parsed | difference(needrestart_deferred_allowlist) }}
+    needrestart_deferred_restart_units: >-
+      {{ (needrestart_deferred_units_parsed | intersect(needrestart_deferred_allowlist))
+         | reject('match', '^user@.+[.]service$') | list }}
+  vars:
+    needrestart_deferred_section: >-
+      {{ needrestart_check_result.stdout
+         | regex_search('(?s)(?<=Service restarts being deferred:\n).*?(?=\n\S|\Z)')
+         | default('', true) }}
+    needrestart_deferred_units_parsed: >-
+      {{ needrestart_deferred_section
+         | regex_findall('(?m)^\s*systemctl restart\s+(\S+\.service)\s*$') }}
+  changed_when: false
+  tags: [needrestart, restart, restart_deferred]
+
+- name: Classify deferred services requiring manual intervention
+  ansible.builtin.set_fact:
+    needrestart_deferred_manual_units: >-
+      {{ needrestart_deferred_units | difference(needrestart_deferred_restart_units) }}
+  changed_when: false
+  tags: [needrestart, restart, restart_deferred]
 
 - name: Show services requiring restart
   ansible.builtin.debug:
@@ -28,6 +57,9 @@
     cmd: "{{ needrestart_restart_command }}"
   register: needrestart_restart_result
   changed_when: "'Restarting services' in needrestart_restart_result.stdout"
+  environment:
+    LC_ALL: C
+    LANGUAGE: C
   tags: [restart, never]
 
 - name: Show restart result
@@ -36,3 +68,54 @@
   when: needrestart_restart_result.stdout | length > 0
   changed_when: false
   tags: [restart, never]
+
+- name: Restart allowed deferred services
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    state: restarted
+  loop: "{{ needrestart_deferred_restart_units }}"
+  tags: [restart_deferred, never]
+
+- name: Warn about deferred services requiring manual intervention
+  ansible.builtin.debug:
+    msg: >-
+      Deferred service units not authorized for automatic restart, including protected
+      user session units, remain in manual intervention: {{ needrestart_deferred_manual_units }}
+  when: needrestart_deferred_manual_units | length > 0
+  tags: [restart_deferred, never]
+
+- name: Re-check needrestart after deferred restarts
+  ansible.builtin.command:
+    cmd: "{{ needrestart_check_command }}"
+  register: needrestart_deferred_verify_result
+  changed_when: false
+  environment:
+    LC_ALL: C
+    LANGUAGE: C
+  tags: [restart_deferred, never]
+
+# Clasificación por host; el play final de playbook.yml agrega estos facts.
+- name: Classify needrestart status for global summary
+  ansible.builtin.set_fact:
+    needrestart_summary_reviewed: true
+    needrestart_summary_services: >-
+      {{ (needrestart_summary_service_markers | default([]))
+         | select('in', needrestart_summary_output | default('') | lower) | list | length > 0 }}
+    needrestart_summary_sessions: >-
+      {{ needrestart_summary_marker_sessions | default('') | lower
+         in needrestart_summary_output | default('') | lower }}
+    needrestart_summary_kernel: >-
+      {{ needrestart_summary_marker_kernel | default('') | lower
+         in needrestart_summary_output | default('') | lower }}
+  vars:
+    # Prefer the re-check after deferred service restarts, then the regular restart result.
+    needrestart_summary_output: >-
+      {{ needrestart_deferred_verify_result.stdout
+         if needrestart_deferred_verify_result is defined
+            and not (needrestart_deferred_verify_result.skipped | default(false))
+         else (needrestart_restart_result.stdout
+               if needrestart_restart_result is defined
+                  and not (needrestart_restart_result.skipped | default(false))
+               else needrestart_check_result.stdout) }}
+  when: needrestart_check_result is defined
+  tags: [needrestart, restart, restart_deferred]

@@ -45,3 +45,56 @@
       tags: [copy_files]
     - role: git_source_install
       tags: [install_xtop]
+
+- name: Show global summary
+  hosts: lxcs
+  connection: local
+  become: false
+  gather_facts: false
+  vars:
+    summary_host_group: lxcs
+  tasks:
+    - name: Collect reviewed host status
+      ansible.builtin.set_fact:
+        summary_host_status: >-
+          {{ (summary_host_status | default([])) + [{
+              'host': item,
+              'services': hostvars[item].needrestart_summary_services | default(false) | bool,
+              'sessions': hostvars[item].needrestart_summary_sessions | default(false) | bool,
+              'reasons':
+                (['servicios deferred'] if (hostvars[item].needrestart_summary_services | default(false) | bool) else [])
+                + (['sesiones antiguas'] if (hostvars[item].needrestart_summary_sessions | default(false) | bool) else [])
+                + (['kernel pendiente'] if (hostvars[item].needrestart_summary_kernel | default(false) | bool) else [])
+            }] }}
+      loop: "{{ groups[summary_host_group] | default([]) }}"
+      when: hostvars[item].needrestart_summary_reviewed | default(false) | bool
+      run_once: true
+      tags: always
+
+    - name: Build manual intervention list
+      ansible.builtin.set_fact:
+        summary_manual_list: >-
+          {{ summary_manual_list | default([])
+             + [(host_status.host | default('host')) ~ ': ' ~ (host_status.reasons | default([]) | join(', '))] }}
+      loop: "{{ summary_host_status | default([]) | selectattr('reasons') | list }}"
+      loop_control:
+        loop_var: host_status
+      run_once: true
+      tags: always
+
+    - name: Print global summary
+      ansible.builtin.debug:
+        msg: >-
+          {{ ['==================== RESUMEN GLOBAL LXC ====================',
+              'Servidores revisados: ' ~ (summary_host_status | default([]) | length),
+              'OK: ' ~ (summary_host_status | default([]) | rejectattr('reasons') | list | length),
+              'Con servicios deferred: ' ~ (summary_host_status | default([]) | selectattr('services') | list | length),
+              'Con sesiones antiguas: ' ~ (summary_host_status | default([]) | selectattr('sessions') | list | length),
+              'Requieren intervención manual:']
+             + (summary_manual_list | default([])
+                if (summary_manual_list | default([]) | length) > 0
+                else ['- Ninguno'])
+             + (['Nota: needrestart no se ejecutó en este run (usa --tags needrestart).']
+                if (summary_host_status | default([]) | length) == 0 else []) }}
+      run_once: true
+      tags: always

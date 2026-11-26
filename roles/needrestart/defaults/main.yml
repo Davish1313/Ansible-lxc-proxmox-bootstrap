@@ -2,3 +2,13 @@
 # needrestart silencia sus notices en ejecuciones no interactivos sin -v.
 needrestart_check_command: needrestart -v -r l
 needrestart_restart_command: needrestart -v -r a
+
+# Marcadores (en minúsculas) para clasificar la salida de needrestart en el resumen global.
+needrestart_summary_service_markers:
+  - "services to be restarted:"
+  - "service restarts being deferred:"
+needrestart_summary_marker_sessions: "user sessions running outdated binaries:"
+needrestart_summary_marker_kernel: "pending kernel upgrade!"
+
+# Unidades systemd permitidas para `--tags restart_deferred`.
+needrestart_deferred_allowlist: []

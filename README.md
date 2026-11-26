@@ -215,6 +215,9 @@ ansible-playbook playbook.yml --tags "needrestart"
 # Reiniciar servicios pendientes
 ansible-playbook playbook.yml --tags "restart"
 
+# Reiniciar solo servicios deferred autorizados (allowlist)
+ansible-playbook playbook.yml --tags restart_deferred
+
 # Solo desplegar archivos
 ansible-playbook playbook.yml --tags "copy_files"
 
@@ -239,6 +242,18 @@ ansible-playbook -i inventory.ini inventory_hosts.yml
 # Combinar tags
 ansible-playbook playbook.yml --tags "update,packages"
 ```
+
+El playbook finaliza con un resumen global calculado a partir de `needrestart`: servidores revisados, OK, con servicios deferred, con sesiones antiguas y lista de hosts que requieren intervención manual (incluye kernel pendiente).
+
+El tag `restart_deferred` reinicia únicamente los servicios deferred incluidos en `needrestart_deferred_allowlist` (vacía por defecto). Configúrala, por ejemplo, en `group_vars/lxcs.yml`:
+
+```yaml
+needrestart_deferred_allowlist:
+  - nginx.service
+  - ssh.service
+```
+
+Las unidades de sesión `user@UID.service` nunca se reinician, incluso si aparecen en esta allowlist; permanecen como intervención manual.
 
 Limitar a un host:
 
