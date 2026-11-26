@@ -11,7 +11,9 @@ needrestart_summary_marker_sessions: "user sessions running outdated binaries:"
 needrestart_summary_marker_kernel: "pending kernel upgrade!"
 
 # Unidades systemd permitidas para `--tags restart_deferred`.
-needrestart_deferred_allowlist: []
+# Ojo: esto reinicia systemd-logind en cualquier host que lo reporte como deferred.
+needrestart_deferred_allowlist:
+  - systemd-logind.service
 
 # En ejecuciones no interactivas, los notify.d de needrestart pueden salir sin
 # leer stdin y provocar SIGPIPE (rc 141) cuando hay sesiones de usuario obsoletas.
