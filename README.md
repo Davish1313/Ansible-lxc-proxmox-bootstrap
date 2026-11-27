@@ -4,10 +4,12 @@ Ansible playbook para aprovisionar y mantener contenedores LXC en Proxmox VE. Ac
 
 ## Requisitos
 
-- Ansible >= 2.14
+- **Controlador (donde ejecutas Ansible):** macOS o Debian/Ubuntu Linux con Ansible >= 2.14 y Python 3
 - Acceso SSH a los contenedores LXC
-- Python 3 en los hosts remotos (o usar `deploy_pip.yml` si no está presente)
+- **Hosts remotos:** Python 3 (o usar `deploy_pip.yml` si no está presente)
 - Colecciones Ansible: `community.general` (ver `collections/requirements.yml`)
+
+> Probado con enfoque cross-platform en controlador macOS y Debian/Ubuntu. Los playbooks administran hosts Linux (LXC/servidores).
 
 ## Inicio rápido
 
@@ -439,7 +441,7 @@ hostname2 ansible_host=192.168.0.202 ansible_port=2222 ansible_user=ubuntu
 |-----------|-------|-------------|
 | `inventory` | `inventory.ini` | Inventario por defecto |
 | `roles_path` | `roles` | Ruta de roles |
-| `collections_path` | `./collections:~/.ansible/collections:/usr/share/ansible/collections` | Colecciones locales primero |
+| `collections_path` | `./collections:~/.ansible/collections:/usr/share/ansible/collections` | Colecciones locales primero (funciona en macOS y Debian/Ubuntu) |
 | `retry_files_enabled` | `False` | Sin archivos .retry |
 | `timeout` | `30` | Timeout de conexion SSH |
 | `become` | `True` | Escalacion de privilegios activa |
@@ -470,6 +472,13 @@ bash /path/to/ansible-validator/scripts/scan_secrets.sh roles playbook.yml deplo
 ```
 
 > Nota: `yamllint` y `checkov` mejoran la cobertura; si faltan, el flujo se marca como `BLOCKED`/warning pero no debe detener la validación base.
+
+### Compatibilidad de controlador (macOS / Debian)
+
+- **macOS**: `brew install ansible ansible-lint yamllint` y `pip3 install checkov` (opcional). Los wrappers de ansible-validator usan `bash`.
+- **Debian/Ubuntu**: `sudo apt update && sudo apt install -y ansible ansible-lint yamllint python3-pip` y `pip3 install --user checkov` (opcional).
+- **Colecciones**: ejecutar `ansible-galaxy collection install -r collections/requirements.yml` en ambos sistemas antes de lint/ejecución.
+- **Rutas**: evitar hardcodear rutas de usuario; usar `~/.ssh/...`, `ansible.cfg` relativo al repo y `collections_path` del proyecto.
 
 ## Archivos Ignorados
 
