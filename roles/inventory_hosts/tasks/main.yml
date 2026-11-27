@@ -12,13 +12,13 @@
   tags:
     - always
 
+# noqa: command-instead-of-module
 - name: Get running services
   ansible.builtin.command: systemctl list-units --type=service --state=running --no-pager --no-legend
   register: inventory_hosts_running_services
   changed_when: false
   tags:
     - always
-  # noqa: command-instead-of-module
 
 - name: Get open ports via ss
   ansible.builtin.command: ss -tlnp

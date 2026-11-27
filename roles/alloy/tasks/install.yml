@@ -29,10 +29,22 @@
   when: not alloy_stat.stat.exists
 
 - name: Add Grafana apt repository
-  ansible.builtin.apt_repository:
-    repo: "deb [signed-by=/usr/share/keyrings/grafana.gpg] https://apt.grafana.com stable main"
+  ansible.builtin.deb822_repository:
+    name: grafana
+    types:
+      - deb
+    uris: https://apt.grafana.com
+    suites: stable
+    components:
+      - main
+    signed_by: /usr/share/keyrings/grafana.gpg
     state: present
-    filename: grafana
+  when: not alloy_stat.stat.exists
+
+- name: Remove legacy Grafana apt source list
+  ansible.builtin.file:
+    path: /etc/apt/sources.list.d/grafana.list
+    state: absent
   when: not alloy_stat.stat.exists
 
 - name: Install Grafana Alloy
