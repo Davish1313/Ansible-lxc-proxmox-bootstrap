@@ -27,18 +27,18 @@
 
 - name: Verify Python installation
   ansible.builtin.command: python3 --version
-  register: python_version
+  register: pip_python_version
   changed_when: false
   ignore_errors: true
 
 - name: Verify pip installation
   ansible.builtin.command: pip3 --version
-  register: pip_version
+  register: pip_pip_version
   changed_when: false
   ignore_errors: true
 
 - name: Display installed versions
   ansible.builtin.debug:
     msg:
-      - "{{ python_version.stdout | default('python3 not found') }}"
-      - "{{ pip_version.stdout | default('pip3 not found') }}"
+      - "{{ pip_python_version.stdout | default('python3 not found') }}"
+      - "{{ pip_pip_version.stdout | default('pip3 not found') }}"

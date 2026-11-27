@@ -1,2 +1,2 @@
 ---
-inventory_output_dir: "inventory-host"
+inventory_hosts_output_dir: "inventory-host"

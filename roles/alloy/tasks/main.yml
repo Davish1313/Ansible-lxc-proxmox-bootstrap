@@ -1,3 +1,5 @@
 ---
-- ansible.builtin.import_tasks: install.yml
-- ansible.builtin.import_tasks: configure.yml
+- name: Import Alloy install tasks
+  ansible.builtin.import_tasks: install.yml
+- name: Import Alloy configure tasks
+  ansible.builtin.import_tasks: configure.yml

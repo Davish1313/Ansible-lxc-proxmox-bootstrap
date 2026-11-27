@@ -18,7 +18,7 @@ inventory:
     uptime_seconds: "{{ ansible_facts['uptime_seconds'] }}"
 
   disk:
-{% for line in inventory_disk_usage.stdout_lines[1:] %}
+{% for line in inventory_hosts_disk_usage.stdout_lines[1:] %}
 {% set parts = line.split() %}
 {% if parts | length >= 6 %}
     - filesystem: "{{ parts[0] }}"
@@ -32,7 +32,7 @@ inventory:
 
   network:
     interfaces:
-{% for line in inventory_network_interfaces.stdout_lines %}
+{% for line in inventory_hosts_network_interfaces.stdout_lines %}
 {% set parts = line.split() %}
 {% if parts | length >= 4 %}
       - name: "{{ parts[1] }}"
@@ -42,19 +42,19 @@ inventory:
 {% endif %}
 {% endfor %}
     dns:
-{% for line in inventory_dns_servers.stdout_lines %}
+{% for line in inventory_hosts_dns_servers.stdout_lines %}
       - "{{ line.split()[1] }}"
 {% endfor %}
-    default_gateway: "{{ inventory_default_gateway.stdout_lines[0] | default('N/A') }}"
+    default_gateway: "{{ inventory_hosts_default_gateway.stdout_lines[0] | default('N/A') }}"
 
   services_running:
-{% for service in inventory_running_services.stdout_lines %}
+{% for service in inventory_hosts_running_services.stdout_lines %}
 {% set parts = service.split() %}
     - "{{ parts[0] }}"
 {% endfor %}
 
   open_ports:
-{% for line in inventory_open_ports_raw.stdout_lines %}
+{% for line in inventory_hosts_open_ports_raw.stdout_lines %}
 {% set parts = line.split() %}
 {% if parts | length >= 2 %}
     - address: "{{ parts[0] }}"
@@ -63,7 +63,7 @@ inventory:
 {% endfor %}
 
   users:
-{% for line in inventory_users_raw.stdout_lines %}
+{% for line in inventory_hosts_users_raw.stdout_lines %}
 {% set parts = line.split(':') %}
 {% if parts | length >= 7 and (parts[2] | int >= 1000 or parts[2] | int == 0) %}
     - name: "{{ parts[0] }}"

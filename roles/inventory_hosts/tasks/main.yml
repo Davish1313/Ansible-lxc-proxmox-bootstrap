@@ -1,7 +1,7 @@
 ---
 - name: Create inventory output directory
   ansible.builtin.file:
-    path: "{{ inventory_output_dir }}"
+    path: "{{ inventory_hosts_output_dir }}"
     state: directory
     mode: "0755"
   tags:
@@ -14,7 +14,7 @@
 
 - name: Get running services
   ansible.builtin.command: systemctl list-units --type=service --state=running --no-pager --no-legend
-  register: inventory_running_services
+  register: inventory_hosts_running_services
   changed_when: false
   tags:
     - always
@@ -22,7 +22,7 @@
 
 - name: Get open ports via ss
   ansible.builtin.command: ss -tlnp
-  register: inventory_open_ports_ss
+  register: inventory_hosts_open_ports_ss
   changed_when: false
   failed_when: false
   tags:
@@ -30,7 +30,7 @@
 
 - name: Get open ports via netstat (fallback)
   ansible.builtin.command: netstat -tlnp
-  register: inventory_open_ports_netstat
+  register: inventory_hosts_open_ports_netstat
   changed_when: false
   failed_when: false
   tags:
@@ -38,17 +38,17 @@
 
 - name: Select port source (ss or netstat fallback)
   ansible.builtin.set_fact:
-    inventory_open_ports_source: >-
-      {{ inventory_open_ports_ss
-         if inventory_open_ports_ss.stdout_lines | default([]) | select('match', '^LISTEN') | list | length > 0
-         else inventory_open_ports_netstat }}
+    inventory_hosts_open_ports_source: >-
+      {{ inventory_hosts_open_ports_ss
+         if inventory_hosts_open_ports_ss.stdout_lines | default([]) | select('match', '^LISTEN') | list | length > 0
+         else inventory_hosts_open_ports_netstat }}
   tags:
     - always
 
 - name: Parse open ports
   ansible.builtin.set_fact:
-    inventory_open_ports_raw:
-      stdout_lines: "{{ (inventory_open_ports_source.stdout_lines | default([]))
+    inventory_hosts_open_ports_raw:
+      stdout_lines: "{{ (inventory_hosts_open_ports_source.stdout_lines | default([]))
         | difference([''])
         | select('match', '^LISTEN')
         | map('split')
@@ -59,35 +59,35 @@
 
 - name: Get users
   ansible.builtin.command: getent passwd
-  register: inventory_users_raw
+  register: inventory_hosts_users_raw
   changed_when: false
   tags:
     - always
 
 - name: Get disk usage
   ansible.builtin.command: df -h --output=source,size,used,avail,pcent,target
-  register: inventory_disk_usage
+  register: inventory_hosts_disk_usage
   changed_when: false
   tags:
     - always
 
 - name: Get network interfaces
   ansible.builtin.command: ip -o addr show
-  register: inventory_network_interfaces
+  register: inventory_hosts_network_interfaces
   changed_when: false
   tags:
     - always
 
 - name: Get DNS servers
   ansible.builtin.command: grep nameserver /etc/resolv.conf
-  register: inventory_dns_servers
+  register: inventory_hosts_dns_servers
   changed_when: false
   tags:
     - always
 
 - name: Get default gateway
   ansible.builtin.command: ip route show default
-  register: inventory_default_gateway
+  register: inventory_hosts_default_gateway
   changed_when: false
   tags:
     - always
@@ -95,15 +95,15 @@
 - name: Generate host inventory report
   ansible.builtin.template:
     src: host_report.yml.j2
-    dest: "{{ inventory_output_dir }}/{{ inventory_hostname }}.yml"
+    dest: "{{ inventory_hosts_output_dir }}/{{ inventory_hostname }}.yml"
     mode: "0644"
   tags:
     - always
 
 - name: Fetch inventory report to local
   ansible.builtin.fetch:
-    src: "{{ inventory_output_dir }}/{{ inventory_hostname }}.yml"
-    dest: "{{ inventory_output_dir }}/{{ inventory_hostname }}.yml"
+    src: "{{ inventory_hosts_output_dir }}/{{ inventory_hostname }}.yml"
+    dest: "{{ inventory_hosts_output_dir }}/{{ inventory_hostname }}.yml"
     flat: true
   tags:
     - always

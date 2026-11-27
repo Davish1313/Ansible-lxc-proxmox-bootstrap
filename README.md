@@ -7,6 +7,7 @@ Ansible playbook para aprovisionar y mantener contenedores LXC en Proxmox VE. Ac
 - Ansible >= 2.14
 - Acceso SSH a los contenedores LXC
 - Python 3 en los hosts remotos (o usar `deploy_pip.yml` si no está presente)
+- Colecciones Ansible: `community.general` (ver `collections/requirements.yml`)
 
 ## Inicio rápido
 
@@ -24,19 +25,25 @@ cp inventory.ini.example inventory.ini
 # Edita inventory.ini con tus hosts
 ```
 
-3. Generar clave SSH dedicada para ansible (una sola vez):
+3. Instalar colecciones requeridas:
+
+```bash
+ansible-galaxy collection install -r collections/requirements.yml
+```
+
+4. Generar clave SSH dedicada para ansible (una sola vez):
 
 ```bash
 ssh-keygen -t ed25519 -f ~/.ssh/ansible_lxc -C "ansible@lxc-bootstrap" -N ""
 ```
 
-4. Bootstrap inicial (crea usuario `ansible` con sudo + clave SSH en todos los hosts):
+5. Bootstrap inicial (crea usuario `ansible` con sudo + clave SSH en todos los hosts):
 
 ```bash
 ansible-playbook playbook.yml --tags bootstrap
 ```
 
-5. Ejecutar playbook completo (provision + mantenimiento):
+6. Ejecutar playbook completo (provision + mantenimiento):
 
 ```bash
 ansible-playbook playbook.yml
@@ -46,12 +53,14 @@ ansible-playbook playbook.yml
 
 ```
 .
-├── ansible.cfg                   # Configuracion de Ansible (incluye become)
+├── ansible.cfg                   # Configuracion de Ansible (incluye become y collections_path)
+├── collections/
+│   └── requirements.yml          # Colecciones requeridas (community.general)
 ├── inventory.ini.example         # Template del inventario
 ├── playbook.yml                  # Playbook principal (dos plays: bootstrap + provision)
 ├── deploy_alloy.yml              # Playbook standalone: despliega Grafana Alloy
 ├── deploy_pip.yml                # Playbook standalone: bootstrap Python3 + pip
-├── inventory_hosts.yml                 # Playbook de inventario (reportes por host)
+├── inventory_hosts.yml           # Playbook de inventario (reportes por host)
 ├── inventory-host/               # Directorio de salida de reportes (generado)
 └── roles/
     ├── bootstrap_user/           # Creacion usuario ansible + sudo + SSH keys
@@ -430,6 +439,7 @@ hostname2 ansible_host=192.168.0.202 ansible_port=2222 ansible_user=ubuntu
 |-----------|-------|-------------|
 | `inventory` | `inventory.ini` | Inventario por defecto |
 | `roles_path` | `roles` | Ruta de roles |
+| `collections_path` | `./collections:~/.ansible/collections:/usr/share/ansible/collections` | Colecciones locales primero |
 | `retry_files_enabled` | `False` | Sin archivos .retry |
 | `timeout` | `30` | Timeout de conexion SSH |
 | `become` | `True` | Escalacion de privilegios activa |
@@ -452,6 +462,15 @@ Para verificar syntax sin ejecutar:
 ansible-playbook playbook.yml --syntax-check
 ```
 
+Recomendado (validación completa con ansible-validator):
+
+```bash
+bash /path/to/ansible-validator/scripts/validate_playbook.sh playbook.yml
+bash /path/to/ansible-validator/scripts/scan_secrets.sh roles playbook.yml deploy_*.yml harden_*.yml inventory_hosts.yml
+```
+
+> Nota: `yamllint` y `checkov` mejoran la cobertura; si faltan, el flujo se marca como `BLOCKED`/warning pero no debe detener la validación base.
+
 ## Archivos Ignorados
 
 `.gitignore` excluye:
@@ -461,3 +480,5 @@ ansible-playbook playbook.yml --syntax-check
 - `*.retry` — reintentos de Ansible
 - `*.log` — logs
 - `notas.txt` — notas personales
+- `.ansible/` — cache/artefactos locales de Ansible
+- `collections/` — colecciones instaladas localmente (usar `collections/requirements.yml`)
